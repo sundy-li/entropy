@@ -78,6 +78,18 @@ func main() {
 
 ```
 
+`app.conf`
+```json
+
+{
+	"Debug":true,
+	"TemplateDir":"template",
+	"StaticDir":"assets"
+}
+
+```
+
+
 `home.html`
 ```html
 
