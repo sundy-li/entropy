@@ -11,7 +11,7 @@ var (
 
 func init() {
 	ErrHandlers[404] = NotFoundErrorHandler
-	
+
 }
 
 //404默认处理函数

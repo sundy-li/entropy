@@ -57,7 +57,6 @@ func (self *URLSpec) UrlSetParams(args ...interface{}) (url string, err error) {
 //To transform /home/aaa/bbb (/home/:p1/:p2) into map[string][]string   :(\w+):
 func (self *URLSpec) ParseUrlParams(url string) (args map[string][]string) {
 	paramValues := self.Regex.FindStringSubmatch(url)[1:]
-	fmt.Printf("%v\n", cap(paramValues))
 	args = make(map[string][]string, 0)
 	paramNameRegexp, _ := regexp.Compile(`(:\w+)`)
 	parttens := strings.Split(self.Pattern, "/")

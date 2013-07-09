@@ -4,7 +4,10 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
+	_ "log"
 	"net/http"
+	_ "reflect"
 )
 
 type IHandler interface {
@@ -22,13 +25,13 @@ type IHandler interface {
 
 //Base Handler
 type Handler struct {
-	RespWriter http.ResponseWriter
-	Request    *http.Request
+	Response Response
+	Request  *http.Request
 }
 
 func (self *Handler) Initialize(rw http.ResponseWriter, req *http.Request) {
 	self.Request = req
-	self.RespWriter = rw
+	self.Response = Response{rw}
 }
 
 func (self *Handler) Prepare() {
@@ -74,21 +77,19 @@ func (self *Handler) Redirect(url string, permanent bool) {
 	} else {
 		status = 302
 	}
-	self.RespWriter.Header().Set("Location", url)
-	self.RespWriter.WriteHeader(status)
+	self.Response.Header().Set("Location", url)
+	self.Response.WriteHeader(status)
 }
 
 type RequestHandler struct {
 	Handler
 	Application *Application
-	Transformer http.ResponseWriter
 	flashedMsg  map[string][]string
 	tplData     map[string]interface{}
 }
 
-func (self *RequestHandler) InitRequestHandler(app *Application, transformer http.ResponseWriter) {
+func (self *RequestHandler) InitRequestHandler(app *Application) {
 	self.Application = app
-	self.Transformer = transformer
 	self.flashedMsg = make(map[string][]string)
 	self.tplData = make(map[string]interface{})
 }
@@ -97,9 +98,24 @@ func (self *RequestHandler) Assign(name string, value interface{}) {
 	self.tplData[name] = value
 }
 
+// func (self *RequestHandler) Render(string tplPath) {
+
+// }
+
+func (self *RequestHandler) RenderText(content string) {
+	self.Response.SetContentType("txt")
+	fmt.Fprint(self.Response, content)
+}
+
+func (self *RequestHandler) RenderJson(object interface{}) {
+	self.Response.SetContentType("json")
+	b, _ := json.Marshal(object)
+	fmt.Fprint(self.Response, string(b))
+}
+
 func (self *RequestHandler) SetCookie(key, value string, age int) {
 	cookie := http.Cookie{Name: key, Value: value, Path: "/", MaxAge: age}
-	http.SetCookie(self.RespWriter, &cookie)
+	http.SetCookie(self.Response, &cookie)
 }
 
 func (self *RequestHandler) GetCookie(key string) (string, error) {
@@ -177,7 +193,7 @@ func (self *RequestHandler) GetFlashedMessagesWithType(msgType string) []string 
 
 //请求处理器构造函数
 func NewRequestHandler(rw http.ResponseWriter, req *http.Request, app *Application) *RequestHandler {
-	return &RequestHandler{Handler: Handler{rw, req}, Application: app, flashedMsg: make(map[string][]string), tplData: make(map[string]interface{})}
+	return &RequestHandler{Handler: Handler{Response: Response{rw}, Request: req}, Application: app, flashedMsg: make(map[string][]string), tplData: make(map[string]interface{})}
 }
 
 //跳转处理器
@@ -192,5 +208,5 @@ func (self *RedirectHandler) Get() {
 }
 
 func NewRedirectHandler(rw http.ResponseWriter, req *http.Request, destinationUrl string, permanet bool) *RedirectHandler {
-	return &RedirectHandler{Handler: Handler{rw, req}, destinationUrl: destinationUrl, isForever: permanet}
+	return &RedirectHandler{Handler: Handler{Response: Response{rw}, Request: req}, destinationUrl: destinationUrl, isForever: permanet}
 }

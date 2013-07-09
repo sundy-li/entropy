@@ -1,12 +1,12 @@
 package entropy
 
 import (
-	"compress/gzip"
-	"compress/zlib"
+	_ "compress/gzip"
+	_ "compress/zlib"
 	"crypto/md5"
 	"fmt"
 	"html/template"
-	"io"
+	_ "io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -114,7 +114,6 @@ func (self *Application) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	spec := self.findMatchedRequestHandler(req)
-	fmt.Printf("%v:%s\n", spec, req.URL.Path)
 	if spec == nil {
 		panic(404)
 	} else {
@@ -134,25 +133,6 @@ func (self *Application) findMatchedRequestHandler(req *http.Request) (matchedSp
 }
 
 func (self *Application) processRequestHandler(spec *URLSpec, req *http.Request, rw http.ResponseWriter) {
-	//prepare
-	transformer := rw.(io.Writer)
-	if rw.Header().Get("Accept-Encoding") != "" {
-		encodings := strings.SplitN(rw.Header().Get("Accept-Encoding"), ",", -1)
-		for i, v := range encodings {
-			encodings[i] = strings.TrimSpace(v)
-		}
-		for _, val := range encodings {
-			if val == "gzip" {
-				rw.Header().Set("Content-Encoding", "gzip")
-				transformer, _ = gzip.NewWriterLevel(rw, gzip.BestSpeed)
-				break
-			} else if val == "deflate" {
-				rw.Header().Set("Content-Encoding", "deflate")
-				transformer, _ = zlib.NewWriterLevel(rw, zlib.BestSpeed)
-				break
-			}
-		}
-	}
 	//handler method calls
 	//initialize
 	methodInitialize := spec.Handler.MethodByName("Initialize")
@@ -162,16 +142,15 @@ func (self *Application) processRequestHandler(spec *URLSpec, req *http.Request,
 	methodInitialize.Call(argsInitialize)
 	//initRequestHandler method
 	methodInit := spec.Handler.MethodByName("InitRequestHandler")
-	argsInit := make([]reflect.Value, 2)
+	argsInit := make([]reflect.Value, 1)
 	argsInit[0] = reflect.ValueOf(self)
-	argsInit[1] = reflect.ValueOf(transformer)
 	methodInit.Call(argsInit)
 	//prepare method
 	methodPrepare := spec.Handler.MethodByName("Prepare")
 	methodPrepare.Call([]reflect.Value{})
 	//request method
 	req.ParseForm()
-	req.ParseMultipartForm(1 << 25)
+	req.ParseMultipartForm(1 << 25) // 32M 1<< 25 /1024/1024
 	args := spec.ParseUrlParams(req.URL.Path)
 	for name, arg := range args {
 		req.Form[name] = arg
@@ -200,7 +179,7 @@ func (self *Application) processStaticRequest(rw http.ResponseWriter, req *http.
 func (self *Application) Go(host string, port int) {
 	addr := fmt.Sprintf("%s:%d", host, port)
 	go func() {
-		fmt.Println("Server is listening : %s", addr)
+		fmt.Println("Server is listening : ", addr)
 	}()
 	log.Fatalln(http.ListenAndServe(addr, self))
 }
