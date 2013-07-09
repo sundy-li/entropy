@@ -98,9 +98,17 @@ func (self *RequestHandler) Assign(name string, value interface{}) {
 	self.tplData[name] = value
 }
 
-// func (self *RequestHandler) Render(string tplPath) {
-
-// }
+func (self *RequestHandler) Render(tplPath string) {
+	tpl := self.Application.TplEngine.Lookup(tplPath)
+	if tpl == nil {
+		panic("没有找到指定的模板！")
+	}
+	d := make(map[string]interface{})
+	d["ctx"] = self
+	d["vars"] = self.tplData
+	self.Response.SetContentType("html")
+	tpl.Execute(self.Response, d)
+}
 
 func (self *RequestHandler) RenderText(content string) {
 	self.Response.SetContentType("txt")
