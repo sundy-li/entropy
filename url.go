@@ -37,18 +37,23 @@ func (self *URLSpec) Url2Regexp() (exp *regexp.Regexp, err error) {
 //Replace the vars into url ，url：/home/:name/:id/:newId, vars ...interface{}
 func (self *URLSpec) UrlSetParams(args ...interface{}) (url string, err error) {
 	url = self.Pattern
-	if strings.HasSuffix(self.Pattern, "$") {
-		self.Pattern = strings.TrimSuffix(self.Pattern, "$")
+	if strings.HasSuffix(url, "$") {
+		url = strings.TrimSuffix(url, "$")
 	}
 	exp, _ := regexp.Compile(`(:\w+)`)
 	matched := exp.FindAllString(self.Pattern, -1)
 	if len(matched) != len(args) {
-		url = ""
-		err = errors.New(fmt.Sprintf("The handler requires %d args , but you provides %d args", len(matched), len(args)))
+		err = errors.New(fmt.Sprintf("ERROR:The handler requires %d args , but you provides %d args", len(matched), len(args)))
 		return
 	} else {
 		for index, arg := range args {
-			url = strings.Replace(url, matched[index], arg.(string), -1)
+			if s, ok := arg.(string); ok {
+				url = strings.Replace(url, matched[index], s, -1)
+			} else {
+				err = errors.New(fmt.Sprintf("参数%v不是string类型", arg))
+				return
+			}
+
 		}
 		return url, nil
 	}
