@@ -101,7 +101,7 @@ func (self *Application) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			switch err {
 			case 404:
 				if handler, ok := self.ErrorHandlers[404]; ok {
-					handler(rw,req)
+					handler(rw, req)
 				}
 			default:
 				InternalServerErrorHandler(rw, req, 500, err, self.Setting.Debug)
@@ -170,9 +170,14 @@ func (self *Application) processRequestHandler(spec *URLSpec, req *http.Request,
 	methodPrepare := spec.Handler.MethodByName("Prepare")
 	methodPrepare.Call([]reflect.Value{})
 	//request method
-	method := spec.Handler.MethodByName(strings.Title(strings.ToLower(req.Method)))
+	req.ParseForm()
+	req.ParseMultipartForm(1 << 25)
 	args := spec.ParseUrlParams(req.URL.Path)
-	method.Call(args)
+	for name, arg := range args {
+		req.Form[name] = arg
+	}
+	method := spec.Handler.MethodByName(strings.Title(strings.ToLower(req.Method)))
+	method.Call([]reflect.Value{})
 	//finish method
 	methodFinish := spec.Handler.MethodByName("Finish")
 	methodFinish.Call([]reflect.Value{})
