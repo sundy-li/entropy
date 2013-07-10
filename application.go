@@ -18,18 +18,25 @@ import (
 	"time"
 )
 
-//Version of The Framework , just like the Golden Section.
+//框架版本号
 var EntropyVersion = "Entropy 0.618"
 
 type Application struct {
-	AppPath       string
+	//执行程序所在目录
+	AppPath string
+	//所有的请求处理器集合
 	NamedHandlers map[string]*URLSpec
+	//错误处理器集合
 	ErrorHandlers map[int]http.HandlerFunc
-	Setting       *Setting
-	TplFuncs      map[string]interface{}
-	TplEngine     *template.Template
+	//配置
+	Setting *Setting
+	//模板函数
+	TplFuncs map[string]interface{}
+	//模板引擎
+	TplEngine *template.Template
 }
 
+//初始化程序,包括模板函数和引擎的初始化
 func (self *Application) Initialize() {
 	//template functions
 	self.TplFuncs["static"] = func(url string) string {
@@ -84,6 +91,7 @@ func (self *Application) Initialize() {
 	})
 }
 
+//添加处理器
 func (self *Application) AddHandler(pattern string, eName string, cName string, handler IHandler) {
 	//pattern:/home/str:action/int:id
 	if !strings.HasSuffix(pattern, "$") {
@@ -95,6 +103,7 @@ func (self *Application) AddHandler(pattern string, eName string, cName string, 
 	self.NamedHandlers[eName] = NewURLSpec(pattern, reflect.ValueOf(handler), eName, cName)
 }
 
+//捕获http请求
 func (self *Application) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	defer func() {
 		if err := recover(); err != nil {
@@ -122,7 +131,7 @@ func (self *Application) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	return
 }
 
-//private functions
+//找到附和当前请求路径的处理器
 func (self *Application) findMatchedRequestHandler(req *http.Request) (matchedSpec *URLSpec) {
 	for _, spec := range self.NamedHandlers {
 		if spec.Regex.MatchString(req.URL.Path) {
@@ -132,32 +141,34 @@ func (self *Application) findMatchedRequestHandler(req *http.Request) (matchedSp
 	return
 }
 
+//处理请求
 func (self *Application) processRequestHandler(spec *URLSpec, req *http.Request, rw http.ResponseWriter) {
-	//handler method calls
-	//initialize
+	//处理器的Initialize方法
 	methodInitialize := spec.Handler.MethodByName("Initialize")
 	argsInitialize := make([]reflect.Value, 2)
 	argsInitialize[0] = reflect.ValueOf(rw)
 	argsInitialize[1] = reflect.ValueOf(req)
 	methodInitialize.Call(argsInitialize)
-	//initRequestHandler method
+	//请求处理器的InitRequestHandler方法
 	methodInit := spec.Handler.MethodByName("InitRequestHandler")
 	argsInit := make([]reflect.Value, 1)
+	//将application当做参数传入
 	argsInit[0] = reflect.ValueOf(self)
 	methodInit.Call(argsInit)
-	//prepare method
+	//处理器的Prepare方法
 	methodPrepare := spec.Handler.MethodByName("Prepare")
 	methodPrepare.Call([]reflect.Value{})
-	//request method
+	//处理表单
 	req.ParseForm()
 	req.ParseMultipartForm(1 << 25) // 32M 1<< 25 /1024/1024
 	args := spec.ParseUrlParams(req.URL.Path)
 	for name, arg := range args {
 		req.Form[name] = arg
 	}
+	//请求所对应的方法
 	method := spec.Handler.MethodByName(strings.Title(strings.ToLower(req.Method)))
 	method.Call([]reflect.Value{})
-	//finish method
+	//处理器的Finish方法
 	methodFinish := spec.Handler.MethodByName("Finish")
 	methodFinish.Call([]reflect.Value{})
 }
@@ -176,6 +187,7 @@ func (self *Application) processStaticRequest(rw http.ResponseWriter, req *http.
 	http.ServeFile(rw, req, path.Join(self.AppPath, req.URL.Path))
 }
 
+//运行程序
 func (self *Application) Go(host string, port int) {
 	addr := fmt.Sprintf("%s:%d", host, port)
 	go func() {
@@ -184,6 +196,7 @@ func (self *Application) Go(host string, port int) {
 	log.Fatalln(http.ListenAndServe(addr, self))
 }
 
+//构造Application对象
 func NewApplication(filePath string) *Application {
 	pwd, _ := os.Getwd()
 	application := &Application{
