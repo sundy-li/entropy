@@ -113,7 +113,7 @@ func (self *Application) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 					handler(rw, req)
 				}
 			default:
-				InternalServerErrorHandler(rw, req, 500, err, self.Setting.Debug)
+				InternalServerErrorHandler(rw, req, 500, err.(error), self.Setting.Debug)
 			}
 		}
 	}()
@@ -131,7 +131,7 @@ func (self *Application) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	return
 }
 
-//找到附和当前请求路径的处理器
+//找到符合当前请求路径的处理器
 func (self *Application) findMatchedRequestHandler(req *http.Request) (matchedSpec *URLSpec) {
 	for _, spec := range self.NamedHandlers {
 		if spec.Regex.MatchString(req.URL.Path) {

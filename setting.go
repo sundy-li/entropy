@@ -12,30 +12,40 @@ import (
 )
 
 type Setting struct {
-	Debug           bool
-	TemplateDir     string
-	StaticDir       string
-	CookieSecret    string
-	FlashCookieName string
+	Debug             bool
+	TemplateDir       string
+	StaticDir         string
+	CookieSecret      string
+	FlashCookieName   string
+	SessionCookieName string
 }
+
+var (
+	globalSetting *Setting
+)
 
 //Generate a new setting . if provides a setting json file , load & use that ; otherwise , use the default setting
 func NewSetting(fileName string) *Setting {
-	cPath, _ := os.Getwd()
-	filePath := path.Join(cPath, fileName)
-	file, err := ioutil.ReadFile(filePath)
-	secret := fmt.Sprintf("%x", sha1.New().Sum([]byte(time.Now().Format(time.RFC3339))))
-	c := Setting{
-		Debug:           true,
-		TemplateDir:     "template",
-		StaticDir:       "static",
-		CookieSecret:    secret[len(secret)-32:],
-		FlashCookieName: "msgs",
+	if globalSetting != nil {
+		return globalSetting
+	} else {
+		cPath, _ := os.Getwd()
+		filePath := path.Join(cPath, fileName)
+		file, err := ioutil.ReadFile(filePath)
+		secret := fmt.Sprintf("%x", sha1.New().Sum([]byte(time.Now().Format(time.RFC3339))))
+		globalSetting := &Setting{
+			Debug:             true,
+			TemplateDir:       "template",
+			StaticDir:         "static",
+			CookieSecret:      secret[len(secret)-32:],
+			FlashCookieName:   "msgs",
+			SessionCookieName: "session",
+		}
+		log.Println("Loaded default setting")
+		if err == nil {
+			json.Unmarshal(file, globalSetting)
+			log.Println("Loaded user's setting")
+		}
+		return globalSetting
 	}
-	log.Println("Loaded default setting")
-	if err == nil {
-		json.Unmarshal(file, &c)
-		log.Println("Loaded user's setting")
-	}
-	return &c
 }

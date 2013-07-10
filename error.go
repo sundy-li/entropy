@@ -29,12 +29,12 @@ func NotFoundErrorHandler(rw http.ResponseWriter, req *http.Request) {
 }
 
 //500错误默认处理函数
-func InternalServerErrorHandler(rw http.ResponseWriter, req *http.Request, code int, err interface{}, debug bool) {
+func InternalServerErrorHandler(rw http.ResponseWriter, req *http.Request, code int, err error, debug bool) {
 	t, _ := template.New("Error").Parse(ErrorTpl)
 	d := make(map[string]interface{})
 	d["Code"] = code
 	d["Version"] = EntropyVersion
-	d["Title"] = "内部应用程序错误"
+	d["Title"] = err.Error()
 	if debug {
 		d["Messages"] = MakeStack()
 	} else {

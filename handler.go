@@ -87,6 +87,7 @@ func (self *Handler) Redirect(url string, permanent bool) {
 //请求处理器
 type RequestHandler struct {
 	Handler
+	Session
 	Application *Application
 	flashedMsg  map[string][]string
 	tplData     map[string]interface{}
@@ -97,6 +98,9 @@ func (self *RequestHandler) InitRequestHandler(app *Application) {
 	self.Application = app
 	self.flashedMsg = make(map[string][]string)
 	self.tplData = make(map[string]interface{})
+	self.Session = Session{
+		store: NewCookieSession(app.Setting.SessionCookieName, self),
+	}
 }
 
 //赋值到模板变量中
