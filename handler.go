@@ -219,6 +219,7 @@ func (self *RequestHandler) GetFlashedMessagesWithType(msgType string) []string 
 	self.GetFlashedMessages()
 	rtr := self.flashedMsg[msgType]
 	delete(self.flashedMsg, msgType)
+	self.flashMessages()
 	return rtr
 }
 

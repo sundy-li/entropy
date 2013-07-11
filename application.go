@@ -1,12 +1,10 @@
 package entropy
 
 import (
-	_ "compress/gzip"
-	_ "compress/zlib"
 	"crypto/md5"
+	"errors"
 	"fmt"
 	"html/template"
-	_ "io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -58,19 +56,19 @@ func (self *Application) Initialize() {
 				return url
 			}
 		}
-		return fmt.Sprintf("Hanlder %s Not Found", name)
+		return fmt.Sprintf("处理器 %s 没有找到", name)
 	}
-	//template engine
+	//构造模板引擎
 	tplBasePath := path.Join(self.AppPath, self.Setting.TemplateDir)
 	dir, err := os.Stat(tplBasePath)
 	if err != nil {
-		panic("Template Engine initialize failed." + err.Error())
+		panic("模板引擎初始化失败." + err.Error())
 	}
 	if dir.IsDir() != true {
-		panic(dir.Name() + "is not a directory.")
+		panic(dir.Name() + "不是一个目录.")
 	}
 	self.TplEngine = template.New(tplBasePath).Funcs(self.TplFuncs)
-	//Go through all files in template dir
+	//遍历所有模板目录下的文件
 	filepath.Walk(tplBasePath, func(path string, info os.FileInfo, err error) error {
 		if !info.IsDir() && !strings.HasPrefix(filepath.Base(path), ".") {
 			b, err := ioutil.ReadFile(path)
@@ -79,7 +77,7 @@ func (self *Application) Initialize() {
 			}
 			s := string(b)
 			tmplName := path[len(tplBasePath)+1:]
-			//Replace \\ to /
+			//将\\替换为/,以防输入时转义
 			tmplName = strings.Replace(tmplName, "\\", "/", -1)
 			tmpl := self.TplEngine.New(tmplName).Funcs(self.TplFuncs)
 			_, err = tmpl.Parse(s)
@@ -98,7 +96,7 @@ func (self *Application) AddHandler(pattern string, eName string, cName string, 
 		pattern = pattern + "$"
 	}
 	if _, exist := self.NamedHandlers[eName]; exist {
-		panic(fmt.Sprintf("Already had a Handler named %s！", eName))
+		panic(fmt.Sprintf("已经有一个名叫 %s 的处理器！", eName))
 	}
 	self.NamedHandlers[eName] = NewURLSpec(pattern, reflect.ValueOf(handler), eName, cName)
 }
@@ -113,15 +111,22 @@ func (self *Application) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 					handler(rw, req)
 				}
 			default:
-				InternalServerErrorHandler(rw, req, 500, err.(error), self.Setting.Debug)
+				if e, ok := err.(error); ok {
+					InternalServerErrorHandler(rw, req, 500, e, self.Setting.Debug)
+				} else {
+					InternalServerErrorHandler(rw, req, 500, errors.New(err.(string)), self.Setting.Debug)
+				}
+
 			}
 		}
 	}()
 	rw.Header().Set("Server", EntropyVersion)
+	//判断请求路径是否包含已经设置的静态路径
 	if strings.HasPrefix(req.URL.Path, fmt.Sprintf("/%s", self.Setting.StaticDir)) || req.URL.Path == "/favicon.ico" {
 		self.processStaticRequest(rw, req)
 		return
 	}
+	//查找相符的请求处理器
 	spec := self.findMatchedRequestHandler(req)
 	if spec == nil {
 		panic(404)
@@ -202,7 +207,7 @@ func NewApplication(filePath string) *Application {
 	application := &Application{
 		AppPath:       pwd,
 		NamedHandlers: make(map[string]*URLSpec),
-		ErrorHandlers: ErrHandlers,
+		ErrorHandlers: ErrHandlers, //定义在error.go中
 		Setting:       NewSetting(filePath),
 		TplFuncs:      make(map[string]interface{}),
 	}

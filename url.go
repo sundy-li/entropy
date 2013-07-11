@@ -8,17 +8,25 @@ import (
 	"strings"
 )
 
+//一个URL标识
 type URLSpec struct {
+	//开发者设置的路径
 	Pattern string
-	Regex   *regexp.Regexp
+	//该路径生成的正则表达式
+	Regex *regexp.Regexp
+	//处理该路径请求的处理器反射值
 	Handler reflect.Value
-	eName   string
-	cName   string
+	//英文名称
+	eName string
+	//中文名称
+	cName string
 }
 
+//URLSpec的构造函数
 func NewURLSpec(pattern string, handler reflect.Value, ename string, cname string) *URLSpec {
 	spec := &URLSpec{Pattern: pattern, Handler: handler, eName: ename, cName: cname}
 	var err error
+	//将原始路径转为正则表达式
 	spec.Regex, err = spec.Url2Regexp()
 	if err != nil {
 		panic(err)
@@ -26,7 +34,7 @@ func NewURLSpec(pattern string, handler reflect.Value, ename string, cname strin
 	return spec
 }
 
-//To transform /:path/:action/:id into :/(\w+)/(\w+)/(\w+)
+//将 /:path/:action/:id 这样的路径转为正则表达式 :/(\w+)/(\w+)/(\w+)
 func (self *URLSpec) Url2Regexp() (exp *regexp.Regexp, err error) {
 	paramRegexp, _ := regexp.Compile(`:\w+`)
 	tmp := paramRegexp.ReplaceAllString(self.Pattern, `(\w+)`)
@@ -34,7 +42,7 @@ func (self *URLSpec) Url2Regexp() (exp *regexp.Regexp, err error) {
 	return
 }
 
-//Replace the vars into url ，url：/home/:name/:id/:newId, vars ...interface{}
+//将用户实际访问路径中提供的变量值替换到原始路径中 ，url：/home/:name/:id/:newId, vars ...interface{}
 func (self *URLSpec) UrlSetParams(args ...interface{}) (url string, err error) {
 	url = self.Pattern
 	if strings.HasSuffix(url, "$") {
@@ -43,7 +51,7 @@ func (self *URLSpec) UrlSetParams(args ...interface{}) (url string, err error) {
 	exp, _ := regexp.Compile(`(:\w+)`)
 	matched := exp.FindAllString(self.Pattern, -1)
 	if len(matched) != len(args) {
-		err = errors.New(fmt.Sprintf("ERROR:The handler requires %d args , but you provides %d args", len(matched), len(args)))
+		err = errors.New(fmt.Sprintf("严重错误:该处理器需要 %d 个参数 , 但是提供了 %d 个参数.", len(matched), len(args)))
 		return
 	} else {
 		for index, arg := range args {

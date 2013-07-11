@@ -1,5 +1,6 @@
 package entropy
 
+//session存储接口，实现此接口即可供框架调用
 type ISessionStore interface {
 	Get(key string) interface{}
 	Set(key string, value interface{})
@@ -7,6 +8,7 @@ type ISessionStore interface {
 	Purge()
 }
 
+//session mixin
 type Session struct {
 	SessionId string
 	store     ISessionStore

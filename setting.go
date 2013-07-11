@@ -24,7 +24,7 @@ var (
 	globalSetting *Setting
 )
 
-//Generate a new setting . if provides a setting json file , load & use that ; otherwise , use the default setting
+//Setting的构造函数，如果全局setting已经存在，则直接返回，即使传入的是新的配置文件，也不进行处理
 func NewSetting(fileName string) *Setting {
 	if globalSetting != nil {
 		return globalSetting

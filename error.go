@@ -16,7 +16,7 @@ func init() {
 
 //404默认处理函数
 func NotFoundErrorHandler(rw http.ResponseWriter, req *http.Request) {
-	t, err := template.New("NotFound").Parse(ErrorTpl)
+	t, err := template.New("NotFound").Parse(errorTpl)
 	if err != nil {
 		panic(err)
 	}
@@ -30,7 +30,7 @@ func NotFoundErrorHandler(rw http.ResponseWriter, req *http.Request) {
 
 //500错误默认处理函数
 func InternalServerErrorHandler(rw http.ResponseWriter, req *http.Request, code int, err error, debug bool) {
-	t, _ := template.New("Error").Parse(ErrorTpl)
+	t, _ := template.New("Error").Parse(errorTpl)
 	d := make(map[string]interface{})
 	d["Code"] = code
 	d["Version"] = EntropyVersion
@@ -43,7 +43,7 @@ func InternalServerErrorHandler(rw http.ResponseWriter, req *http.Request, code 
 	t.Execute(rw, d)
 }
 
-var ErrorTpl = `
+var errorTpl = `
 <!doctype html>
 <html lang="en-US">
 <head>
