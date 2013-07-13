@@ -84,18 +84,6 @@ func (self *Handler) Redirect(url string, permanent bool) {
 	self.Response.WriteHeader(status)
 }
 
-//reverse
-func (self *Handler) Reverse(name string, arg ...interface{}) string {
-	if spec, ok := self.NamedHandlers[name]; ok {
-		url, err := spec.UrlSetParams(arg...)
-		if err != nil {
-			return err.Error()
-		} else {
-			return url
-		}
-	}
-	return fmt.Sprintf("处理器 %s 没有找到", name)
-}
 
 //请求处理器
 type RequestHandler struct {
@@ -104,6 +92,19 @@ type RequestHandler struct {
 	Application *Application
 	flashedMsg  map[string][]string
 	tplData     map[string]interface{}
+}
+
+//reverse
+func (self *RequestHandler) Reverse(name string, arg ...interface{}) string {
+	if spec, ok := self.Application.NamedHandlers[name]; ok {
+		url, err := spec.UrlSetParams(arg...)
+		if err != nil {
+			return err.Error()
+		} else {
+			return url
+		}
+	}
+	return fmt.Sprintf("处理器 %s 没有找到", name)
 }
 
 //初始化请求处理器
