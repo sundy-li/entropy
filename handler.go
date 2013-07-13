@@ -84,7 +84,6 @@ func (self *Handler) Redirect(url string, permanent bool) {
 	self.Response.WriteHeader(status)
 }
 
-
 //请求处理器
 type RequestHandler struct {
 	Handler
@@ -204,9 +203,9 @@ func (self *RequestHandler) FlashSuccess(msg string) {
 }
 
 //判断是否有消息被刷
-func (self *RequestHandler) HasFlashedMessages() bool {
+func (self *RequestHandler) HasFlashedMessages(msgType string) bool {
 	self.GetFlashedMessages()
-	if len(self.flashedMsg) > 0 {
+	if len(self.flashedMsg[msgType]) > 0 {
 		return true
 	} else {
 		return false
