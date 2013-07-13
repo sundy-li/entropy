@@ -190,14 +190,14 @@ func (self *RequestHandler) flashMessages() {
 
 //刷错误消息
 func (self *RequestHandler) FlashError(msg string) {
-	self.GetFlashedMessages()
+	//self.GetFlashedMessages()
 	self.flashedMsg["error"] = append(self.flashedMsg["error"], msg)
 	self.flashMessages()
 }
 
 //刷成功消息
 func (self *RequestHandler) FlashSuccess(msg string) {
-	self.GetFlashedMessages()
+	//self.GetFlashedMessages()
 	self.flashedMsg["success"] = append(self.flashedMsg["success"], msg)
 	self.flashMessages()
 }
