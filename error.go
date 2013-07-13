@@ -16,6 +16,7 @@ func init() {
 
 //404默认处理函数
 func NotFoundErrorHandler(rw http.ResponseWriter, req *http.Request) {
+	rw.WriteHeader(404)
 	t, err := template.New("NotFound").Parse(errorTpl)
 	if err != nil {
 		panic(err)
