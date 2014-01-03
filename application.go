@@ -95,6 +95,9 @@ func (self *Application) AddHandler(pattern string, eName string, cName string, 
 	if !strings.HasSuffix(pattern, "$") {
 		pattern = pattern + "$"
 	}
+	if !strings.HasPrefix(pattern, "^") {
+		pattern = "^" + pattern
+	}
 	if _, exist := self.NamedHandlers[eName]; exist {
 		panic(fmt.Sprintf("已经有一个名叫 %s 的处理器！", eName))
 	}
@@ -139,7 +142,15 @@ func (self *Application) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 //找到符合当前请求路径的处理器
 func (self *Application) findMatchedRequestHandler(req *http.Request) (matchedSpec *URLSpec) {
 	for _, spec := range self.NamedHandlers {
-		if spec.Regex.MatchString(req.URL.Path) {
+		var requestUrl string
+		// if strings.HasSuffix(req.URL.Path, "/") {
+		// 	requestUrl = string([]rune(req.URL.Path)[:len([]rune(req.URL.Path))-1])
+		// } else {
+		requestUrl = req.URL.Path
+		// }
+
+		if spec.Regex.MatchString(requestUrl) {
+			println(spec.Pattern, requestUrl)
 			matchedSpec = spec //最后一个match
 		}
 	}
