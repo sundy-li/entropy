@@ -40,7 +40,7 @@ func GenerateCaptcha(bg, fg *image.Uniform, length int, width int, height int, s
 	c.SetClip(cap.Image.Bounds())
 	c.SetDst(cap.Image)
 	c.SetSrc(fg)
-	pt := freetype.Pt(10+int(c.PointToFix32(size)>>8), 10)
+	pt := freetype.Pt(0, int(c.PointToFix32(size)>>8))
 	for _, s := range cap.Text {
 		_, err = c.DrawString(string(s), pt)
 		if err != nil {
