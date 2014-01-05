@@ -1,6 +1,7 @@
 package entropy
 
 import (
+	"crypto/sha1"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -8,6 +9,7 @@ import (
 	_ "log"
 	"net/http"
 	_ "reflect"
+	"time"
 )
 
 //处理器接口
@@ -128,6 +130,7 @@ func (self *RequestHandler) Render(tplPath string) {
 		panic("没有找到指定的模板！")
 	}
 	d := make(map[string]interface{})
+	d["xsrf"] = fmt.Sprintf("%x", sha1.New().Sum([]byte(time.Now().Format(time.RFC3339))))
 	d["ctx"] = self
 	d["vars"] = self.tplData
 	self.Response.SetContentType("html")
@@ -166,7 +169,7 @@ func (self *RequestHandler) GetCookie(key string) (string, error) {
 
 //设置加密cookie,使用aes加密
 func (self *RequestHandler) SetSecureCookie(key, value string, age int) {
-	AESValue, _ := AesEncrypt([]byte(value), []byte(self.Application.Setting.CookieSecret))
+	AESValue, _ := AesEncrypt([]byte(value), []byte(self.Application.Setting.Secret))
 	self.SetCookie(key, base64.StdEncoding.EncodeToString(AESValue), age)
 }
 
@@ -177,7 +180,7 @@ func (self *RequestHandler) GetSecureCookie(key string) (string, error) {
 		return "", err
 	} else {
 		byte_value, _ := base64.StdEncoding.DecodeString(cookie_value)
-		value, _ := AesDecrypt(byte_value, []byte(self.Application.Setting.CookieSecret))
+		value, _ := AesDecrypt(byte_value, []byte(self.Application.Setting.Secret))
 		return string(value), nil
 	}
 }

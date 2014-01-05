@@ -15,7 +15,7 @@ type Setting struct {
 	Debug             bool
 	TemplateDir       string
 	StaticDir         string
-	CookieSecret      string
+	Secret            string
 	FlashCookieName   string
 	SessionCookieName string
 }
@@ -37,7 +37,7 @@ func NewSetting(fileName string) *Setting {
 			Debug:             true,
 			TemplateDir:       "template",
 			StaticDir:         "static",
-			CookieSecret:      secret[len(secret)-32:],
+			Secret:            secret[len(secret)-32:],
 			FlashCookieName:   "msgs",
 			SessionCookieName: "session",
 		}
