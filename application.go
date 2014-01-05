@@ -150,7 +150,6 @@ func (self *Application) findMatchedRequestHandler(req *http.Request) (matchedSp
 		// }
 
 		if spec.Regex.MatchString(requestUrl) {
-			println(spec.Pattern, requestUrl)
 			matchedSpec = spec //最后一个match
 		}
 	}
