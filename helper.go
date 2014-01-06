@@ -1,9 +1,12 @@
 package entropy
+
 import (
+	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
-	"bytes"
+	"log"
 )
+
 //AES加密
 func AesEncrypt(origData, key []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
@@ -28,7 +31,9 @@ func AesDecrypt(crypted, key []byte) ([]byte, error) {
 	blockSize := block.BlockSize()
 	blockMode := cipher.NewCBCDecrypter(block, key[:blockSize])
 	origData := make([]byte, len(crypted))
+	log.Printf("%v %s", len(crypted), crypted)
 	blockMode.CryptBlocks(origData, crypted)
+
 	origData = mPKCS5UnPadding(origData)
 	return origData, nil
 }

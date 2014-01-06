@@ -10,13 +10,14 @@ var (
 )
 
 //CookieSession构造函数,使用全局单例,因为一个应用不可能要求session处于多种存储状态
-func NewCookieSession(sessionKey string, handler *RequestHandler) ISessionStore {
+func NewCookieSession(sessionKey string, handler *Handler) ISessionStore {
 	if globalSessionStore == nil {
 		globalSessionStore = &CookieSession{
 			SessionData: make(map[string]interface{}),
 			sessionKey:  sessionKey,
 			handler:     handler,
 		}
+
 	}
 	return globalSessionStore
 }
@@ -25,7 +26,7 @@ func NewCookieSession(sessionKey string, handler *RequestHandler) ISessionStore 
 type CookieSession struct {
 	SessionData map[string]interface{}
 	sessionKey  string
-	handler     *RequestHandler
+	handler     *Handler
 }
 
 //恢复cookie中的数据到SessionData中

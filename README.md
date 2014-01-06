@@ -1,4 +1,8 @@
 Entropy [![Build Status](https://drone.io/github.com/frank418/entropy/status.png)](https://drone.io/github.com/frank418/entropy/latest)
+
+此项目已经被我改得面目全非，而且没有时间进行后续维护了……
+先这样放着吧……
+
 =======
 一个简单的go语言实现的web框架
 

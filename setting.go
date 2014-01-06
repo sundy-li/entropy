@@ -1,14 +1,14 @@
 package entropy
 
 import (
-	"crypto/sha1"
+	//"crypto/sha1"
 	"encoding/json"
-	"fmt"
+	//"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"path"
-	"time"
+	//"time"
 )
 
 type Setting struct {
@@ -32,20 +32,28 @@ func NewSetting(fileName string) *Setting {
 		cPath, _ := os.Getwd()
 		filePath := path.Join(cPath, fileName)
 		file, err := ioutil.ReadFile(filePath)
-		secret := fmt.Sprintf("%x", sha1.New().Sum([]byte(time.Now().Format(time.RFC3339))))
+		//secret := fmt.Sprintf("%x", sha1.New().Sum([]byte(time.Now().Format(time.RFC3339))))
 		globalSetting := &Setting{
 			Debug:             true,
 			TemplateDir:       "template",
 			StaticDir:         "static",
-			Secret:            secret[len(secret)-32:],
 			FlashCookieName:   "msgs",
 			SessionCookieName: "session",
 		}
 		log.Println("Loaded default setting")
 		if err == nil {
-			json.Unmarshal(file, globalSetting)
-			log.Println("Loaded user's setting")
+			err = json.Unmarshal(file, globalSetting)
+			if err != nil {
+				panic(err.Error())
+			} else {
+				log.Println("Loaded user's setting")
+			}
+
 		}
+		if globalSetting.Secret == "" {
+			panic("必须提供一个密匙！Secret!")
+		}
+		log.Printf("%v", globalSetting)
 		return globalSetting
 	}
 }

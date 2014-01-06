@@ -53,7 +53,7 @@ func (self *Application) Initialize() {
 			if err != nil {
 				return err.Error()
 			} else {
-				return url
+				return url[1:]
 			}
 		}
 		return fmt.Sprintf("处理器 %s 没有找到", name)
@@ -160,16 +160,11 @@ func (self *Application) findMatchedRequestHandler(req *http.Request) (matchedSp
 func (self *Application) processRequestHandler(spec *URLSpec, req *http.Request, rw http.ResponseWriter) {
 	//处理器的Initialize方法
 	methodInitialize := spec.Handler.MethodByName("Initialize")
-	argsInitialize := make([]reflect.Value, 2)
+	argsInitialize := make([]reflect.Value, 3)
 	argsInitialize[0] = reflect.ValueOf(rw)
 	argsInitialize[1] = reflect.ValueOf(req)
+	argsInitialize[2] = reflect.ValueOf(self)
 	methodInitialize.Call(argsInitialize)
-	//请求处理器的InitRequestHandler方法
-	methodInit := spec.Handler.MethodByName("InitRequestHandler")
-	argsInit := make([]reflect.Value, 1)
-	//将application当做参数传入
-	argsInit[0] = reflect.ValueOf(self)
-	methodInit.Call(argsInit)
 	//处理器的Prepare方法
 	methodPrepare := spec.Handler.MethodByName("Prepare")
 	methodPrepare.Call([]reflect.Value{})

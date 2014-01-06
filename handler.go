@@ -6,15 +6,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	_ "log"
 	"net/http"
-	_ "reflect"
+	//"reflect"
+	"log"
 	"time"
 )
 
 //处理器接口
 type IHandler interface {
-	Initialize(rw http.ResponseWriter, req *http.Request)
+	Initialize(rw http.ResponseWriter, req *http.Request, app *Application)
 	Prepare()
 	Get()
 	Post()
@@ -26,16 +26,26 @@ type IHandler interface {
 	Options()
 }
 
-//Base Handler
+//请求处理器
 type Handler struct {
-	Response Response
+	Response http.ResponseWriter
 	Request  *http.Request
+	Session
+	Application *Application
+	flashedMsg  map[string][]string
+	tplData     map[string]interface{}
 }
 
 //初始化请求处理器
-func (self *Handler) Initialize(rw http.ResponseWriter, req *http.Request) {
+func (self *Handler) Initialize(rw http.ResponseWriter, req *http.Request, app *Application) {
 	self.Request = req
-	self.Response = Response{rw}
+	self.Response = rw
+	self.Application = app
+	self.flashedMsg = make(map[string][]string)
+	self.tplData = make(map[string]interface{})
+	self.Session = Session{
+		store: NewCookieSession(app.Setting.SessionCookieName, self),
+	}
 }
 
 func (self *Handler) Prepare() {
@@ -86,17 +96,8 @@ func (self *Handler) Redirect(url string, permanent bool) {
 	self.Response.WriteHeader(status)
 }
 
-//请求处理器
-type RequestHandler struct {
-	Handler
-	Session
-	Application *Application
-	flashedMsg  map[string][]string
-	tplData     map[string]interface{}
-}
-
 //reverse
-func (self *RequestHandler) Reverse(name string, arg ...interface{}) string {
+func (self *Handler) Reverse(name string, arg ...interface{}) string {
 	if spec, ok := self.Application.NamedHandlers[name]; ok {
 		url, err := spec.UrlSetParams(arg...)
 		if err != nil {
@@ -108,23 +109,13 @@ func (self *RequestHandler) Reverse(name string, arg ...interface{}) string {
 	return fmt.Sprintf("处理器 %s 没有找到", name)
 }
 
-//初始化请求处理器
-func (self *RequestHandler) InitRequestHandler(app *Application) {
-	self.Application = app
-	self.flashedMsg = make(map[string][]string)
-	self.tplData = make(map[string]interface{})
-	self.Session = Session{
-		store: NewCookieSession(app.Setting.SessionCookieName, self),
-	}
-}
-
 //赋值到模板变量中
-func (self *RequestHandler) Assign(name string, value interface{}) {
+func (self *Handler) Assign(name string, value interface{}) {
 	self.tplData[name] = value
 }
 
 //渲染模板
-func (self *RequestHandler) Render(tplPath string) {
+func (self *Handler) Render(tplPath string) {
 	tpl := self.Application.TplEngine.Lookup(tplPath)
 	if tpl == nil {
 		panic("没有找到指定的模板！")
@@ -133,31 +124,37 @@ func (self *RequestHandler) Render(tplPath string) {
 	d["xsrf"] = fmt.Sprintf("%x", sha1.New().Sum([]byte(time.Now().Format(time.RFC3339))))
 	d["ctx"] = self
 	d["vars"] = self.tplData
-	self.Response.SetContentType("html")
+	//self.Response.Header().Set("Content-Type", "text/html")
 	tpl.Execute(self.Response, d)
 }
 
 //渲染文本
-func (self *RequestHandler) RenderText(content string) {
-	self.Response.SetContentType("txt")
+func (self *Handler) RenderText(content string) {
+	self.Response.Header().Set("Content-Type", "text/plain")
 	fmt.Fprint(self.Response, content)
 }
 
 //渲染Json
-func (self *RequestHandler) RenderJson(object interface{}) {
-	self.Response.SetContentType("json")
+func (self *Handler) RenderJson(object interface{}) {
+	self.Response.Header().Set("Content-Type", "application/json")
 	b, _ := json.Marshal(object)
 	fmt.Fprint(self.Response, string(b))
 }
 
 //设置cookie
-func (self *RequestHandler) SetCookie(key, value string, age int) {
-	cookie := http.Cookie{Name: key, Value: value, Path: "/", MaxAge: age}
+func (self *Handler) SetCookie(key, value string, age int) {
+	cookie := http.Cookie{Name: key, Value: value, Path: "/"}
+	if age != 0 {
+		cookie.MaxAge = age
+	}
+	log.Printf("%v %v", cookie.String(), self.Response)
 	http.SetCookie(self.Response, &cookie)
+	//self.Response.Header().Set("Set-Cookie", cookie.String())
+	//log.Printf("%v", self.Response.Header())
 }
 
 //获取cookie
-func (self *RequestHandler) GetCookie(key string) (string, error) {
+func (self *Handler) GetCookie(key string) (string, error) {
 	cookie, err := self.Request.Cookie(key)
 	if err != nil {
 		return "", err
@@ -168,13 +165,13 @@ func (self *RequestHandler) GetCookie(key string) (string, error) {
 }
 
 //设置加密cookie,使用aes加密
-func (self *RequestHandler) SetSecureCookie(key, value string, age int) {
+func (self *Handler) SetSecureCookie(key, value string, age int) {
 	AESValue, _ := AesEncrypt([]byte(value), []byte(self.Application.Setting.Secret))
 	self.SetCookie(key, base64.StdEncoding.EncodeToString(AESValue), age)
 }
 
 //获取加密cookie
-func (self *RequestHandler) GetSecureCookie(key string) (string, error) {
+func (self *Handler) GetSecureCookie(key string) (string, error) {
 	cookie_value, err := self.GetCookie(key)
 	if err != nil {
 		return "", err
@@ -186,27 +183,27 @@ func (self *RequestHandler) GetSecureCookie(key string) (string, error) {
 }
 
 //刷消息到cookie中
-func (self *RequestHandler) flashMessages() {
+func (self *Handler) flashMessages() {
 	byteVlaue, _ := json.Marshal(self.flashedMsg)
 	self.SetSecureCookie(self.Application.Setting.FlashCookieName, string(byteVlaue), 0)
 }
 
 //刷错误消息
-func (self *RequestHandler) FlashError(msg string) {
+func (self *Handler) FlashError(msg string) {
 	//self.GetFlashedMessages()
 	self.flashedMsg["error"] = append(self.flashedMsg["error"], msg)
 	self.flashMessages()
 }
 
 //刷成功消息
-func (self *RequestHandler) FlashSuccess(msg string) {
+func (self *Handler) FlashSuccess(msg string) {
 	//self.GetFlashedMessages()
 	self.flashedMsg["success"] = append(self.flashedMsg["success"], msg)
 	self.flashMessages()
 }
 
 //判断是否有消息被刷
-func (self *RequestHandler) HasFlashedMessages(msgType string) bool {
+func (self *Handler) HasFlashedMessages(msgType string) bool {
 	self.GetFlashedMessages()
 	if len(self.flashedMsg[msgType]) > 0 {
 		return true
@@ -216,7 +213,7 @@ func (self *RequestHandler) HasFlashedMessages(msgType string) bool {
 }
 
 //更新内部的flashedMsg
-func (self *RequestHandler) GetFlashedMessages() error {
+func (self *Handler) GetFlashedMessages() error {
 	value, err := self.GetSecureCookie(self.Application.Setting.FlashCookieName)
 	if err != nil {
 		return err
@@ -231,15 +228,10 @@ func (self *RequestHandler) GetFlashedMessages() error {
 }
 
 //获取消息,供模板使用
-func (self *RequestHandler) GetFlashedMessagesWithType(msgType string) []string {
+func (self *Handler) GetFlashedMessagesWithType(msgType string) []string {
 	self.GetFlashedMessages()
 	rtr := self.flashedMsg[msgType]
 	delete(self.flashedMsg, msgType)
 	self.flashMessages()
 	return rtr
-}
-
-//请求处理器构造函数
-func NewRequestHandler(rw http.ResponseWriter, req *http.Request, app *Application) *RequestHandler {
-	return &RequestHandler{Handler: Handler{Response: Response{rw}, Request: req}, Application: app, flashedMsg: make(map[string][]string), tplData: make(map[string]interface{})}
 }

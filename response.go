@@ -12,7 +12,7 @@ type Response struct {
 }
 
 //设置http头
-func (r *Response) SetHeader(key string, value string, unique bool) {
+func (r Response) SetHeader(key string, value string, unique bool) {
 	//如果值必须是唯一的,使用set;否则,使用add
 	if unique {
 		r.Header().Set(key, value)
@@ -22,7 +22,7 @@ func (r *Response) SetHeader(key string, value string, unique bool) {
 }
 
 //设置ContentType
-func (r *Response) SetContentType(ext string) {
+func (r Response) SetContentType(ext string) {
 	var contentType string
 	//判断传入的扩展名是否有.
 	if !strings.HasPrefix(ext, ".") {
