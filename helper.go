@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
-	"log"
 )
 
 //AES加密
@@ -31,9 +30,7 @@ func AesDecrypt(crypted, key []byte) ([]byte, error) {
 	blockSize := block.BlockSize()
 	blockMode := cipher.NewCBCDecrypter(block, key[:blockSize])
 	origData := make([]byte, len(crypted))
-	log.Printf("%v %s", len(crypted), crypted)
 	blockMode.CryptBlocks(origData, crypted)
-
 	origData = mPKCS5UnPadding(origData)
 	return origData, nil
 }

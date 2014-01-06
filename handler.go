@@ -7,8 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	//"reflect"
-	"log"
 	"time"
 )
 
@@ -31,9 +29,10 @@ type Handler struct {
 	Response http.ResponseWriter
 	Request  *http.Request
 	Session
-	Application *Application
-	flashedMsg  map[string][]string
-	tplData     map[string]interface{}
+	Application  *Application
+	flashedMsg   map[string][]string
+	tplData      map[string]interface{}
+	BeforeRender func()
 }
 
 //初始化请求处理器
@@ -46,6 +45,10 @@ func (self *Handler) Initialize(rw http.ResponseWriter, req *http.Request, app *
 	self.Session = Session{
 		store: NewCookieSession(app.Setting.SessionCookieName, self),
 	}
+	//这里是一个坑，待填
+	// self.BeforeRender = func() {
+	// 	self.Session.Flush()
+	// }
 }
 
 func (self *Handler) Prepare() {
@@ -124,7 +127,7 @@ func (self *Handler) Render(tplPath string) {
 	d["xsrf"] = fmt.Sprintf("%x", sha1.New().Sum([]byte(time.Now().Format(time.RFC3339))))
 	d["ctx"] = self
 	d["vars"] = self.tplData
-	//self.Response.Header().Set("Content-Type", "text/html")
+	self.Response.Header().Set("Content-Type", "text/html")
 	tpl.Execute(self.Response, d)
 }
 
@@ -147,10 +150,7 @@ func (self *Handler) SetCookie(key, value string, age int) {
 	if age != 0 {
 		cookie.MaxAge = age
 	}
-	log.Printf("%v %v", cookie.String(), self.Response)
 	http.SetCookie(self.Response, &cookie)
-	//self.Response.Header().Set("Set-Cookie", cookie.String())
-	//log.Printf("%v", self.Response.Header())
 }
 
 //获取cookie
@@ -166,7 +166,10 @@ func (self *Handler) GetCookie(key string) (string, error) {
 
 //设置加密cookie,使用aes加密
 func (self *Handler) SetSecureCookie(key, value string, age int) {
-	AESValue, _ := AesEncrypt([]byte(value), []byte(self.Application.Setting.Secret))
+	AESValue, e := AesEncrypt([]byte(value), []byte(self.Application.Setting.Secret))
+	if e != nil {
+		panic(e.Error())
+	}
 	self.SetCookie(key, base64.StdEncoding.EncodeToString(AESValue), age)
 }
 

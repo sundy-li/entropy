@@ -6,6 +6,7 @@ type ISessionStore interface {
 	Set(key string, value interface{})
 	Delete(key string)
 	Purge()
+	Flush()
 }
 
 //session mixin
@@ -28,4 +29,8 @@ func (self *Session) DeleteSession(key string) {
 
 func (self *Session) Purge() {
 	self.store.Purge()
+}
+
+func (self *Session) Flush() {
+	self.store.Flush()
 }

@@ -27,13 +27,20 @@ type CookieSession struct {
 	SessionData map[string]interface{}
 	sessionKey  string
 	handler     *Handler
+	age         int
 }
 
 //恢复cookie中的数据到SessionData中
 func (self *CookieSession) restore() {
 	sessionStr, err := self.handler.GetSecureCookie(self.sessionKey)
 	if err != nil {
-		self.SessionData = make(map[string]interface{})
+		//如果SessionData中有数据，就不初始化啦！！！！！
+		//这个逻辑害死哥了，排了一天BUG
+		//新的问题出现了，没有写入cookie，但是存在于SessionData中
+		//如何重置SessionData，何时重置
+		if len(self.SessionData) == 0 {
+			self.SessionData = make(map[string]interface{})
+		}
 		return
 	}
 	err = json.Unmarshal([]byte(sessionStr), &self.SessionData)
@@ -45,9 +52,10 @@ func (self *CookieSession) restore() {
 }
 
 //将SessionData中的数据写入到cookie中
-func (self *CookieSession) flush(age int) {
+func (self *CookieSession) Flush() {
 	sessionByte, _ := json.Marshal(self.SessionData)
-	self.handler.SetSecureCookie(self.sessionKey, string(sessionByte), age)
+	self.SessionData = make(map[string]interface{})
+	self.handler.SetSecureCookie(self.sessionKey, string(sessionByte), self.age)
 }
 
 //获取一个session值,返回值为interface,需要对获取到的值做类型断言
@@ -64,17 +72,18 @@ func (self *CookieSession) Get(key string) interface{} {
 func (self *CookieSession) Set(key string, value interface{}) {
 	self.restore()
 	self.SessionData[key] = value
-	self.flush(0)
 }
 
 //删除一个session值
 func (self *CookieSession) Delete(key string) {
 	self.restore()
 	delete(self.SessionData, key)
-	self.flush(0)
+	self.age = 0
+	self.Flush()
 }
 
 //清理所有的session,即将存储session的cookie删除
 func (self *CookieSession) Purge() {
-	self.flush(-1)
+	self.age = -1
+	self.Flush()
 }
