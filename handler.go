@@ -26,9 +26,9 @@ type IHandler interface {
 
 //请求处理器
 type Handler struct {
-	Response http.ResponseWriter
-	Request  *http.Request
-	Session
+	Response     http.ResponseWriter
+	Request      *http.Request
+	Session      *Session
 	Application  *Application
 	flashedMsg   map[string][]string
 	tplData      map[string]interface{}
@@ -42,7 +42,7 @@ func (self *Handler) Initialize(rw http.ResponseWriter, req *http.Request, app *
 	self.Application = app
 	self.flashedMsg = make(map[string][]string)
 	self.tplData = make(map[string]interface{})
-	self.Session = Session{
+	self.Session = &Session{
 		store: NewCookieSession(app.Setting.SessionCookieName, self),
 	}
 	//这里是一个坑，待填

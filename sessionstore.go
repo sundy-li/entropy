@@ -2,6 +2,7 @@ package entropy
 
 import (
 	"encoding/json"
+	"log"
 )
 
 var (
@@ -54,6 +55,7 @@ func (self *CookieSession) restore() {
 //将SessionData中的数据写入到cookie中
 func (self *CookieSession) Flush() {
 	sessionByte, _ := json.Marshal(self.SessionData)
+	log.Printf("Flush SessionData:%v", self.SessionData)
 	self.SessionData = make(map[string]interface{})
 	self.handler.SetSecureCookie(self.sessionKey, string(sessionByte), self.age)
 }
@@ -70,8 +72,18 @@ func (self *CookieSession) Get(key string) interface{} {
 
 //设置一个session值
 func (self *CookieSession) Set(key string, value interface{}) {
+	//CookieSession不正确的原因在这里：
+	//读取之前SD是空的
+	log.Printf("Before resotre %v", self.SessionData)
+	//恢复读取之后：从Cookie读取到了内容
 	self.restore()
+	//这里给SD赋值出现问题，如果我在Handler中连续Set两次session的话
+	//第一次的Set会被忽略，因为restore的时候还是从Cookie读取，而不是当前的SD
+	//详细在examples里的sessiontest.go
+	log.Printf("Restored %v", self.SessionData)
 	self.SessionData[key] = value
+	log.Printf("Set %v", self.SessionData)
+	//self.Flush()
 }
 
 //删除一个session值
