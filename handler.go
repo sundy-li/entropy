@@ -6,6 +6,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"image"
+	"image/gif"
+	"image/jpeg"
+	"image/png"
+	"io/bufio"
 	"log"
 	"net/http"
 	"time"
@@ -121,6 +126,31 @@ func (self *Handler) Reverse(name string, arg ...interface{}) string {
 //赋值到模板变量中
 func (self *Handler) Assign(name string, value interface{}) {
 	self.tplData[name] = value
+}
+
+func (self *Handler) RenderImage(img *image.Image, imgType int) {
+	self.FlushSession()
+	b := bufio.NewWriter(this.Response.ResponseWriter)
+	switch imgType {
+	case IMAGEPNG:
+		{
+			png.Encode(b, capt.Image)
+			this.Response.SetContentType("png")
+		}
+	case IMAGEGIF:
+		{
+			gif.Encode(b, capt.Image)
+			this.Response.SetContentType("gif")
+		}
+	case IMAGEJPEG:
+		{
+			jpeg.Encode(b, capt.Image)
+			this.Response.SetContentType("jpeg")
+		}
+	default:
+		panic("错误的图片类型!")
+	}
+	b.Flush()
 }
 
 //渲染模板

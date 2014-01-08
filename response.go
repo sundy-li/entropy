@@ -1,7 +1,6 @@
 package entropy
 
 import (
-	"log"
 	"mime"
 	"net/http"
 	"strings"
@@ -15,7 +14,6 @@ type Response struct {
 //设置http头
 func (r Response) SetHeader(key string, value string, unique bool) {
 	//如果值必须是唯一的,使用set;否则,使用add
-	log.Printf("response line 18 :%v %v", key, value)
 	if unique {
 		r.Header().Set(key, value)
 	} else {
