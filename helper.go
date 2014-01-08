@@ -18,7 +18,6 @@ func AesEncrypt(origData, key []byte) ([]byte, error) {
 	crypted := make([]byte, len(origData))
 	blockMode.CryptBlocks(crypted, origData)
 	return crypted, nil
-
 }
 
 //AES解密
