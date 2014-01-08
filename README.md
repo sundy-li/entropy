@@ -1,7 +1,9 @@
 Entropy [![Build Status](https://drone.io/github.com/frank418/entropy/status.png)](https://drone.io/github.com/frank418/entropy/latest)
-CookieSession已经修正
 =======
 一个简单的go语言实现的web框架
+
+暂时还无法用在生产环境^_^,因为我正在生产环境对它进行改进~
+
 
 示例
 ----
