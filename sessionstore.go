@@ -34,10 +34,6 @@ type CookieSession struct {
 func (self *CookieSession) Restore() {
 	sessionStr, err := self.handler.GetSecureCookie(self.sessionKey)
 	if err != nil {
-		//如果SessionData中有数据，就不初始化啦！！！！！
-		//这个逻辑害死哥了，排了一天BUG
-		//新的问题出现了，没有写入cookie，但是存在于SessionData中
-		//如何重置SessionData，何时重置
 		if len(self.SessionData) == 0 {
 			self.SessionData = make(map[string]interface{})
 		}
