@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 )
@@ -22,33 +23,30 @@ type IHandler interface {
 	Patch()
 	Put()
 	Options()
+	// ResotreSession()
+	// FlushSession()
 }
 
 //请求处理器
 type Handler struct {
-	Response     http.ResponseWriter
-	Request      *http.Request
-	Session      *Session
-	Application  *Application
-	flashedMsg   map[string][]string
-	tplData      map[string]interface{}
-	BeforeRender func()
+	Response    Response
+	Request     *http.Request
+	Session     *Session
+	Application *Application
+	flashedMsg  map[string][]string
+	tplData     map[string]interface{}
 }
 
 //初始化请求处理器
 func (self *Handler) Initialize(rw http.ResponseWriter, req *http.Request, app *Application) {
 	self.Request = req
-	self.Response = rw
+	self.Response = Response{rw}
 	self.Application = app
 	self.flashedMsg = make(map[string][]string)
 	self.tplData = make(map[string]interface{})
 	self.Session = &Session{
 		store: NewCookieSession(app.Setting.SessionCookieName, self),
 	}
-	//这里是一个坑，待填
-	// self.BeforeRender = func() {
-	// 	self.Session.Flush()
-	// }
 }
 
 func (self *Handler) Prepare() {
@@ -87,6 +85,14 @@ func (self *Handler) Options() {
 	panic(errors.New("OPTIONS method is not implemented"))
 }
 
+func (self *Handler) RestoreSession() {
+	self.Session.Restore()
+}
+
+func (self *Handler) FlushSession() {
+	self.Session.Flush()
+}
+
 //跳转
 func (self *Handler) Redirect(url string, permanent bool) {
 	var status int
@@ -119,6 +125,7 @@ func (self *Handler) Assign(name string, value interface{}) {
 
 //渲染模板
 func (self *Handler) Render(tplPath string) {
+	self.FlushSession()
 	tpl := self.Application.TplEngine.Lookup(tplPath)
 	if tpl == nil {
 		panic("没有找到指定的模板！")
@@ -127,19 +134,21 @@ func (self *Handler) Render(tplPath string) {
 	d["xsrf"] = fmt.Sprintf("%x", sha1.New().Sum([]byte(time.Now().Format(time.RFC3339))))
 	d["ctx"] = self
 	d["vars"] = self.tplData
-	self.Response.Header().Set("Content-Type", "text/html")
+	self.Response.SetContentType("html")
 	tpl.Execute(self.Response, d)
 }
 
 //渲染文本
 func (self *Handler) RenderText(content string) {
-	self.Response.Header().Set("Content-Type", "text/plain")
+	self.FlushSession()
+	self.Response.SetContentType("text")
 	fmt.Fprint(self.Response, content)
 }
 
 //渲染Json
 func (self *Handler) RenderJson(object interface{}) {
-	self.Response.Header().Set("Content-Type", "application/json")
+	self.FlushSession()
+	self.Response.SetContentType("json")
 	b, _ := json.Marshal(object)
 	fmt.Fprint(self.Response, string(b))
 }
@@ -150,7 +159,9 @@ func (self *Handler) SetCookie(key, value string, age int) {
 	if age != 0 {
 		cookie.MaxAge = age
 	}
-	http.SetCookie(self.Response, &cookie)
+	log.Printf("%v %v", key, value)
+	http.SetCookie(self.Response.ResponseWriter, &cookie)
+	//self.Response.SetHeader(key, value, true)
 }
 
 //获取cookie
@@ -170,6 +181,7 @@ func (self *Handler) SetSecureCookie(key, value string, age int) {
 	if e != nil {
 		panic(e.Error())
 	}
+	log.Printf("Handler SetSecureCookie line 182%v %v %v", key, value, self.Response)
 	self.SetCookie(key, base64.StdEncoding.EncodeToString(AESValue), age)
 }
 

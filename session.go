@@ -2,6 +2,7 @@ package entropy
 
 //session存储接口，实现此接口即可供框架调用
 type ISessionStore interface {
+	Restore()
 	Get(key string) interface{}
 	Set(key string, value interface{})
 	Delete(key string)
@@ -29,6 +30,10 @@ func (self *Session) DeleteSession(key string) {
 
 func (self *Session) Purge() {
 	self.store.Purge()
+}
+
+func (self *Session) Restore() {
+	self.store.Restore()
 }
 
 func (self *Session) Flush() {

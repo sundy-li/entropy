@@ -165,6 +165,9 @@ func (self *Application) processRequestHandler(spec *URLSpec, req *http.Request,
 	argsInitialize[1] = reflect.ValueOf(req)
 	argsInitialize[2] = reflect.ValueOf(self)
 	methodInitialize.Call(argsInitialize)
+	//RestoreSession
+	//methodRestoreSession := spec.Handler.MethodByName("RestoreSession")
+	//methodRestoreSession.Call([]reflect.Value{})
 	//处理器的Prepare方法
 	methodPrepare := spec.Handler.MethodByName("Prepare")
 	methodPrepare.Call([]reflect.Value{})
@@ -178,6 +181,9 @@ func (self *Application) processRequestHandler(spec *URLSpec, req *http.Request,
 	//请求所对应的方法
 	method := spec.Handler.MethodByName(strings.Title(strings.ToLower(req.Method)))
 	method.Call([]reflect.Value{})
+	//FlushSession
+	// methodFlushSession := spec.Handler.MethodByName("FlushSession")
+	// methodFlushSession.Call([]reflect.Value{})
 	//处理器的Finish方法
 	methodFinish := spec.Handler.MethodByName("Finish")
 	methodFinish.Call([]reflect.Value{})
