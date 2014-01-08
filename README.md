@@ -6,7 +6,7 @@ Entropy [![Build Status](https://drone.io/github.com/frank418/entropy/status.png
 
 感谢赵桑思密达给Entropy设计的LOGO
 
-![EntroyLogo](https://github.com/frank418/entropy/Entropy.png)
+![EntroyLogo](https://raw.github.com/frank418/entropy/master/Entropy.png)
 
 
 示例
