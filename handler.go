@@ -26,11 +26,12 @@ type IHandler interface {
 	Patch()
 	Put()
 	Options()
+	GetStartTime() time.Time
 }
 
 //请求处理器
 type Handler struct {
-	StartTime   time.Time
+	startTime   time.Time
 	Response    Response
 	Request     *http.Request
 	Session     *Session
@@ -41,7 +42,7 @@ type Handler struct {
 
 //初始化请求处理器
 func (self *Handler) Initialize(rw http.ResponseWriter, req *http.Request, app *Application) {
-	self.StartTime = time.Now()
+	self.startTime = time.Now()
 	self.Request = req
 	self.Response = Response{rw}
 	self.Application = app
@@ -94,6 +95,10 @@ func (self *Handler) RestoreSession() {
 
 func (self *Handler) FlushSession() {
 	self.Session.Flush()
+}
+
+func (self *Handler) GetStartTime() time.Time {
+	return self.startTime
 }
 
 //跳转

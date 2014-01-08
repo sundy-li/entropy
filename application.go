@@ -62,8 +62,9 @@ func (self *Application) Initialize() {
 		}
 		return fmt.Sprintf("处理器 %s 没有找到", name)
 	}
-	self.TplFuncs["eslape"] = func(start time.Time) string {
-		return fmt.Sprintf("%f", time.Since(start).Seconds())
+	//程序执行时间,返回毫秒
+	self.TplFuncs["eslape"] = func(handler IHandler) string {
+		return fmt.Sprintf("%f", time.Since(handler.GetStartTime()).Seconds()*1000)
 	}
 
 	//构造模板引擎
