@@ -6,7 +6,7 @@ import (
 )
 
 type TestHandler struct {
-	RequestHandler
+	Handler
 }
 
 func TestUrl2Regexp(t *testing.T) {
