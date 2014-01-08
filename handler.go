@@ -2,7 +2,6 @@ package entropy
 
 import (
 	"bufio"
-	"crypto/sha1"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -107,6 +106,21 @@ func (self *Handler) Redirect(url string, permanent bool) {
 	self.Response.WriteHeader(status)
 }
 
+//xsrf 验证
+func (self *Handler) ValidXsrf() bool {
+	xsrf, ok := self.Request.Form["xsrf"]
+	xsrfRaw, okRaw := self.Session.GetSession("xsrf").(string)
+	if ok && okRaw {
+		if xsrf[0] == xsrfRaw {
+			return true
+		} else {
+			return false
+		}
+	} else {
+		return true
+	}
+}
+
 //reverse
 func (self *Handler) Reverse(name string, arg ...interface{}) string {
 	if spec, ok := self.Application.NamedHandlers[name]; ok {
@@ -152,13 +166,15 @@ func (self *Handler) RenderImage(img image.Image, imgType int) {
 
 //渲染模板
 func (self *Handler) Render(tplPath string) {
-	self.FlushSession()
+
 	tpl := self.Application.TplEngine.Lookup(tplPath)
 	if tpl == nil {
 		panic("没有找到指定的模板！")
 	}
 	d := make(map[string]interface{})
-	d["xsrf"] = fmt.Sprintf("%x", sha1.New().Sum([]byte(time.Now().Format(time.RFC3339))))
+	d["xsrf"] = base64.StdEncoding.EncodeToString([]byte(time.Now().Format(time.RFC3339)))[22:30] + randString(8)
+	self.Session.SetSession("xsrf", d["xsrf"])
+	self.FlushSession()
 	d["ctx"] = self
 	d["vars"] = self.tplData
 	self.Response.SetContentType("html")

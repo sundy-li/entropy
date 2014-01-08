@@ -17,7 +17,6 @@ func NewCookieSession(sessionKey string, handler *Handler) ISessionStore {
 			sessionKey:  sessionKey,
 			handler:     handler,
 		}
-
 	}
 	return globalSessionStore
 }
