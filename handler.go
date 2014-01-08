@@ -1,6 +1,7 @@
 package entropy
 
 import (
+	"bufio"
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/json"
@@ -10,8 +11,6 @@ import (
 	"image/gif"
 	"image/jpeg"
 	"image/png"
-	"io/bufio"
-	"log"
 	"net/http"
 	"time"
 )
@@ -28,8 +27,6 @@ type IHandler interface {
 	Patch()
 	Put()
 	Options()
-	// ResotreSession()
-	// FlushSession()
 }
 
 //请求处理器
@@ -128,24 +125,24 @@ func (self *Handler) Assign(name string, value interface{}) {
 	self.tplData[name] = value
 }
 
-func (self *Handler) RenderImage(img *image.Image, imgType int) {
+func (self *Handler) RenderImage(img image.Image, imgType int) {
 	self.FlushSession()
-	b := bufio.NewWriter(this.Response.ResponseWriter)
+	b := bufio.NewWriter(self.Response.ResponseWriter)
 	switch imgType {
 	case IMAGEPNG:
 		{
-			png.Encode(b, capt.Image)
-			this.Response.SetContentType("png")
+			png.Encode(b, img)
+			self.Response.SetContentType("png")
 		}
 	case IMAGEGIF:
 		{
-			gif.Encode(b, capt.Image)
-			this.Response.SetContentType("gif")
+			gif.Encode(b, img, nil)
+			self.Response.SetContentType("gif")
 		}
 	case IMAGEJPEG:
 		{
-			jpeg.Encode(b, capt.Image)
-			this.Response.SetContentType("jpeg")
+			jpeg.Encode(b, img, nil)
+			self.Response.SetContentType("jpeg")
 		}
 	default:
 		panic("错误的图片类型!")
@@ -189,7 +186,6 @@ func (self *Handler) SetCookie(key, value string, age int) {
 	if age != 0 {
 		cookie.MaxAge = age
 	}
-	log.Printf("%v %v", key, value)
 	http.SetCookie(self.Response.ResponseWriter, &cookie)
 	//self.Response.SetHeader(key, value, true)
 }
@@ -211,7 +207,6 @@ func (self *Handler) SetSecureCookie(key, value string, age int) {
 	if e != nil {
 		panic(e.Error())
 	}
-	log.Printf("Handler SetSecureCookie line 182%v %v %v", key, value, self.Response)
 	self.SetCookie(key, base64.StdEncoding.EncodeToString(AESValue), age)
 }
 

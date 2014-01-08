@@ -2,7 +2,6 @@ package entropy
 
 import (
 	"encoding/json"
-	"log"
 )
 
 var (
@@ -55,7 +54,6 @@ func (self *CookieSession) Restore() {
 //将SessionData中的数据写入到cookie中
 func (self *CookieSession) Flush() {
 	//if len(self.SessionData) != 0 {
-	log.Printf("CookieSession Flush : session store line 60 %v", self.SessionData)
 	sessionByte, _ := json.Marshal(self.SessionData)
 	self.SessionData = make(map[string]interface{})
 
