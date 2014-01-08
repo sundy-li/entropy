@@ -30,6 +30,7 @@ type IHandler interface {
 
 //请求处理器
 type Handler struct {
+	StartTime   time.Time
 	Response    Response
 	Request     *http.Request
 	Session     *Session
@@ -40,6 +41,7 @@ type Handler struct {
 
 //初始化请求处理器
 func (self *Handler) Initialize(rw http.ResponseWriter, req *http.Request, app *Application) {
+	self.StartTime = time.Now()
 	self.Request = req
 	self.Response = Response{rw}
 	self.Application = app
@@ -166,8 +168,8 @@ func (self *Handler) RenderImage(img image.Image, imgType int) {
 
 //渲染模板
 func (self *Handler) Render(tplPath string) {
-
 	tpl := self.Application.TplEngine.Lookup(tplPath)
+	tpl.Funcs(self.Application.TplFuncs)
 	if tpl == nil {
 		panic("没有找到指定的模板！")
 	}
@@ -178,7 +180,7 @@ func (self *Handler) Render(tplPath string) {
 	d["ctx"] = self
 	d["vars"] = self.tplData
 	self.Response.SetContentType("html")
-	tpl.Execute(self.Response, d)
+	tpl.Execute(self.Response.ResponseWriter, d)
 }
 
 //渲染文本
@@ -203,7 +205,6 @@ func (self *Handler) SetCookie(key, value string, age int) {
 		cookie.MaxAge = age
 	}
 	http.SetCookie(self.Response.ResponseWriter, &cookie)
-	//self.Response.SetHeader(key, value, true)
 }
 
 //获取cookie
@@ -246,14 +247,12 @@ func (self *Handler) flashMessages() {
 
 //刷错误消息
 func (self *Handler) FlashError(msg string) {
-	//self.GetFlashedMessages()
 	self.flashedMsg["error"] = append(self.flashedMsg["error"], msg)
 	self.flashMessages()
 }
 
 //刷成功消息
 func (self *Handler) FlashSuccess(msg string) {
-	//self.GetFlashedMessages()
 	self.flashedMsg["success"] = append(self.flashedMsg["success"], msg)
 	self.flashMessages()
 }

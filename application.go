@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -41,10 +42,13 @@ func (self *Application) Initialize() {
 		filePath := path.Join(self.AppPath, self.Setting.StaticDir, url)
 		fi, err := os.Stat(filePath)
 		if err != nil {
-			panic(err)
+			return err.Error()
 		}
-		hash := md5.New().Sum([]byte(fi.ModTime().Format(time.RFC3339)))
-		urlFile := fmt.Sprintf("/%s/%s?v=%x", self.Setting.StaticDir, url, hash[:4])
+		h := md5.New()
+		io.WriteString(h, fi.ModTime().Format(time.RFC3339))
+		hash := string(h.Sum(nil))
+		//这里hash中的每一项都是2个字节,取前4位,即hash[:2]
+		urlFile := fmt.Sprintf("/%s/%s?v=%x", self.Setting.StaticDir, url, hash[:2])
 		return urlFile
 	}
 	self.TplFuncs["url"] = func(name string, arg ...interface{}) string {
@@ -58,6 +62,10 @@ func (self *Application) Initialize() {
 		}
 		return fmt.Sprintf("处理器 %s 没有找到", name)
 	}
+	self.TplFuncs["eslape"] = func(start time.Time) string {
+		return fmt.Sprintf("%f", time.Since(start).Seconds())
+	}
+
 	//构造模板引擎
 	tplBasePath := path.Join(self.AppPath, self.Setting.TemplateDir)
 	dir, err := os.Stat(tplBasePath)
@@ -143,12 +151,7 @@ func (self *Application) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 func (self *Application) findMatchedRequestHandler(req *http.Request) (matchedSpec *URLSpec) {
 	for _, spec := range self.NamedHandlers {
 		var requestUrl string
-		// if strings.HasSuffix(req.URL.Path, "/") {
-		// 	requestUrl = string([]rune(req.URL.Path)[:len([]rune(req.URL.Path))-1])
-		// } else {
 		requestUrl = req.URL.Path
-		// }
-
 		if spec.Regex.MatchString(requestUrl) {
 			matchedSpec = spec //最后一个match
 		}
@@ -165,9 +168,7 @@ func (self *Application) processRequestHandler(spec *URLSpec, req *http.Request,
 	argsInitialize[1] = reflect.ValueOf(req)
 	argsInitialize[2] = reflect.ValueOf(self)
 	methodInitialize.Call(argsInitialize)
-	//RestoreSession
-	//methodRestoreSession := spec.Handler.MethodByName("RestoreSession")
-	//methodRestoreSession.Call([]reflect.Value{})
+
 	//处理器的Prepare方法
 	methodPrepare := spec.Handler.MethodByName("Prepare")
 	methodPrepare.Call([]reflect.Value{})
@@ -181,9 +182,7 @@ func (self *Application) processRequestHandler(spec *URLSpec, req *http.Request,
 	//请求所对应的方法
 	method := spec.Handler.MethodByName(strings.Title(strings.ToLower(req.Method)))
 	method.Call([]reflect.Value{})
-	//FlushSession
-	// methodFlushSession := spec.Handler.MethodByName("FlushSession")
-	// methodFlushSession.Call([]reflect.Value{})
+
 	//处理器的Finish方法
 	methodFinish := spec.Handler.MethodByName("Finish")
 	methodFinish.Call([]reflect.Value{})
