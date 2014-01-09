@@ -36,8 +36,10 @@ type Handler struct {
 	Request     *http.Request
 	Session     *Session
 	Application *Application
-	flashedMsg  map[string][]string
+	errorMsg    map[string]string
+	successMsg  map[string]string
 	tplData     map[string]interface{}
+	Form        *EForm
 }
 
 //初始化请求处理器
@@ -46,7 +48,8 @@ func (self *Handler) Initialize(rw http.ResponseWriter, req *http.Request, app *
 	self.Request = req
 	self.Response = Response{rw}
 	self.Application = app
-	self.flashedMsg = make(map[string][]string)
+	self.errorMsg = make(map[string]string)
+	self.successMsg = make(map[string]string)
 	self.tplData = make(map[string]interface{})
 	self.Session = &Session{
 		store: NewCookieSession(app.Setting.SessionCookieName, self),
@@ -179,9 +182,18 @@ func (self *Handler) Render(tplPath string) {
 		panic("没有找到指定的模板！")
 	}
 	d := make(map[string]interface{})
-	d["xsrf"] = base64.StdEncoding.EncodeToString([]byte(time.Now().Format(time.RFC3339)))[22:30] + randString(8)
-	self.Session.SetSession("xsrf", d["xsrf"])
+	if self.Form != nil {
+		self.Form.Xsrf = base64.StdEncoding.EncodeToString([]byte(time.Now().Format(time.RFC3339)))[22:30] + randString(8)
+		self.Session.SetSession("xsrf", self.Form.Xsrf)
+		d["form"] = self.Form
+	}
 	self.FlushSession()
+	if self.HasFlashedMessages(0) {
+		d["err"] = self.errorMsg
+	}
+	if self.HasFlashedMessages(1) {
+		d["msg"] = self.successMsg
+	}
 	d["ctx"] = self
 	d["vars"] = self.tplData
 	self.Response.SetContentType("html")
@@ -244,54 +256,21 @@ func (self *Handler) GetSecureCookie(key string) (string, error) {
 	}
 }
 
-//刷消息到cookie中
-func (self *Handler) flashMessages() {
-	byteVlaue, _ := json.Marshal(self.flashedMsg)
-	self.SetSecureCookie(self.Application.Setting.FlashCookieName, string(byteVlaue), 0)
-}
-
 //刷错误消息
-func (self *Handler) FlashError(msg string) {
-	self.flashedMsg["error"] = append(self.flashedMsg["error"], msg)
-	self.flashMessages()
+func (self *Handler) FlashError(key, msg string) {
+	self.errorMsg[key] = msg
 }
 
 //刷成功消息
-func (self *Handler) FlashSuccess(msg string) {
-	self.flashedMsg["success"] = append(self.flashedMsg["success"], msg)
-	self.flashMessages()
+func (self *Handler) FlashSuccess(key, msg string) {
+	self.successMsg[key] = msg
 }
 
 //判断是否有消息被刷
-func (self *Handler) HasFlashedMessages(msgType string) bool {
-	self.GetFlashedMessages()
-	if len(self.flashedMsg[msgType]) > 0 {
-		return true
+func (self *Handler) HasFlashedMessages(mtype int) bool {
+	if mtype == 0 {
+		return len(self.errorMsg) > 0
 	} else {
-		return false
+		return len(self.successMsg) > 0
 	}
-}
-
-//更新内部的flashedMsg
-func (self *Handler) GetFlashedMessages() error {
-	value, err := self.GetSecureCookie(self.Application.Setting.FlashCookieName)
-	if err != nil {
-		return err
-	} else {
-		err := json.Unmarshal([]byte(value), &self.flashedMsg)
-		if err != nil {
-			return err
-		} else {
-			return nil
-		}
-	}
-}
-
-//获取消息,供模板使用
-func (self *Handler) GetFlashedMessagesWithType(msgType string) []string {
-	self.GetFlashedMessages()
-	rtr := self.flashedMsg[msgType]
-	delete(self.flashedMsg, msgType)
-	self.flashMessages()
-	return rtr
 }
