@@ -32,10 +32,10 @@ func (form *EForm) Validate(r *http.Request) bool {
 	return result
 }
 
-func (form *EForm) Label(name, value string, attrs ...string) template.HTML {
+func (form *EForm) Label(name string, attrs ...string) template.HTML {
 	field := form.fields[name]
 
-	return field.Label(value, attrs)
+	return field.Label(attrs)
 }
 
 func (form *EForm) XsrfHtml() template.HTML {

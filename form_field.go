@@ -6,7 +6,7 @@ import (
 )
 
 type IField interface {
-	Label(value string, attrs []string) template.HTML
+	Label(attrs []string) template.HTML
 	Render(attrs []string) template.HTML
 	Validate() bool
 	GetName() string
@@ -26,19 +26,14 @@ type BaseField struct {
 	validators []IValidator
 }
 
-func (field *BaseField) Label(value string, attrs []string) template.HTML {
-	attrsStr, vstr := "", ""
+func (field *BaseField) Label(attrs []string) template.HTML {
+	attrsStr := ""
 	if len(attrs) > 0 {
 		for _, attr := range attrs {
 			attrsStr += " " + template.HTMLEscapeString(attr)
 		}
 	}
-	if len(value) != 0 {
-		vstr = value
-	} else {
-		vstr = field.label
-	}
-	return template.HTML(fmt.Sprintf("<label for=\"%s\" %s>%s</label>", field.name, attrsStr, vstr))
+	return template.HTML(fmt.Sprintf("<label for=\"%s\" %s>%s</label>", field.name, attrsStr, field.label))
 }
 
 func (field *BaseField) HasErrors() bool {
