@@ -10,6 +10,7 @@ var (
 
 func init() {
 	XValidators["required"] = &Required{}
+	XValidators["email"] = &Regexp{Expr: `^(\w)+(\.\w+)*@(\w)+((\.\w+)+)$`, Message: "不是一个有效的邮件地址"}
 }
 
 type IValidator interface {
