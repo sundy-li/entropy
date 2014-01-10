@@ -5,3 +5,7 @@ const (
 	IMAGEGIF
 	IMAGEJPEG
 )
+
+const (
+	XSRF = "_xsrf_"
+)

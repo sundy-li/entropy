@@ -4,6 +4,14 @@ import (
 	"regexp"
 )
 
+var (
+	XValidators = make(map[string]IValidator)
+)
+
+func init() {
+	XValidators["required"] = &Required{}
+}
+
 type IValidator interface {
 	Verify(value string) (bool, string)
 }

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html/template"
 	"image"
 	"image/gif"
 	"image/jpeg"
@@ -36,10 +37,10 @@ type Handler struct {
 	Request     *http.Request
 	Session     *Session
 	Application *Application
-	errorMsg    map[string]string
-	successMsg  map[string]string
-	tplData     map[string]interface{}
-	Form        *EForm
+	ErrorMsg    map[string]string
+	SuccessMsg  map[string]string
+	TplData     map[string]interface{}
+	Form        *Form
 }
 
 //初始化请求处理器
@@ -48,9 +49,9 @@ func (self *Handler) Initialize(rw http.ResponseWriter, req *http.Request, app *
 	self.Request = req
 	self.Response = Response{rw}
 	self.Application = app
-	self.errorMsg = make(map[string]string)
-	self.successMsg = make(map[string]string)
-	self.tplData = make(map[string]interface{})
+	self.ErrorMsg = make(map[string]string)
+	self.SuccessMsg = make(map[string]string)
+	self.TplData = make(map[string]interface{})
 	self.Session = &Session{
 		store: NewCookieSession(app.Setting.SessionCookieName, self),
 	}
@@ -116,18 +117,6 @@ func (self *Handler) Redirect(url string, permanent bool) {
 	self.Response.WriteHeader(status)
 }
 
-//xsrf 验证
-func (self *Handler) ValidXsrf() bool {
-	xsrfRaw, okRaw := self.Session.GetSession(self.Application.Setting.XsrfKey).(string)
-	//当从session中读取到xsrf值并且该值与用户提交表单中的xsrf一致时,返回true
-	//其他情况均返回false
-	if okRaw && (self.Form.Xsrf == xsrfRaw) {
-		return true
-	} else {
-		return false
-	}
-}
-
 //reverse
 func (self *Handler) Reverse(name string, arg ...interface{}) string {
 	if spec, ok := self.Application.NamedHandlers[name]; ok {
@@ -143,7 +132,7 @@ func (self *Handler) Reverse(name string, arg ...interface{}) string {
 
 //赋值到模板变量中
 func (self *Handler) Assign(name string, value interface{}) {
-	self.tplData[name] = value
+	self.TplData[name] = value
 }
 
 func (self *Handler) RenderImage(img image.Image, imgType int) {
@@ -171,6 +160,12 @@ func (self *Handler) RenderImage(img image.Image, imgType int) {
 	b.Flush()
 }
 
+func (self *Handler) GenerateXsrfHtml() template.HTML {
+	xsrfStr := base64.StdEncoding.EncodeToString([]byte(time.Now().Format(time.RFC3339)))[22:30] + randString(8)
+	self.SetSecureCookie(XSRF, xsrfStr, 600)
+	return template.HTML(fmt.Sprintf(`<input type="hidden" value="%s" name=%q id=%q>`, xsrfStr, XSRF, XSRF))
+}
+
 //渲染模板
 func (self *Handler) Render(tplPath string) {
 	tpl := self.Application.TplEngine.Lookup(tplPath)
@@ -178,23 +173,18 @@ func (self *Handler) Render(tplPath string) {
 	if tpl == nil {
 		panic("没有找到指定的模板！")
 	}
-	d := make(map[string]interface{})
-	if self.Form != nil {
-		self.Form.Xsrf = base64.StdEncoding.EncodeToString([]byte(time.Now().Format(time.RFC3339)))[22:30] + randString(8)
-		self.Session.SetSession(self.Application.Setting.XsrfKey, self.Form.Xsrf)
-		d["form"] = self.Form
-	}
+	//d := make(map[string]interface{})
 	self.FlushSession()
-	if self.HasFlashedMessages(0) {
-		d["err"] = self.errorMsg
-	}
-	if self.HasFlashedMessages(1) {
-		d["msg"] = self.successMsg
-	}
-	d["ctx"] = self
-	d["vars"] = self.tplData
+	// if self.HasFlashedMessages(0) {
+	// 	d["err"] = self.ErrorMsg
+	// }
+	// if self.HasFlashedMessages(1) {
+	// 	d["msg"] = self.SuccessMsg
+	// }
+	// d["ctx"] = self
+	// d["vars"] = self.tplData
 	self.Response.SetContentType("html")
-	tpl.Execute(self.Response.ResponseWriter, d)
+	tpl.Execute(self.Response.ResponseWriter, self)
 }
 
 //渲染文本
@@ -255,19 +245,19 @@ func (self *Handler) GetSecureCookie(key string) (string, error) {
 
 //刷错误消息
 func (self *Handler) FlashError(key, msg string) {
-	self.errorMsg[key] = msg
+	self.ErrorMsg[key] = msg
 }
 
 //刷成功消息
 func (self *Handler) FlashSuccess(key, msg string) {
-	self.successMsg[key] = msg
+	self.SuccessMsg[key] = msg
 }
 
 //判断是否有消息被刷
 func (self *Handler) HasFlashedMessages(mtype int) bool {
 	if mtype == 0 {
-		return len(self.errorMsg) > 0
+		return len(self.ErrorMsg) > 0
 	} else {
-		return len(self.successMsg) > 0
+		return len(self.SuccessMsg) > 0
 	}
 }

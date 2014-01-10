@@ -1,30 +1,53 @@
 package entropy
 
 import (
-	"fmt"
 	"html/template"
 	"net/http"
+	"reflect"
 	"strings"
 )
 
-type EForm struct {
+type Form struct {
 	fields map[string]IField
-	Xsrf   string
 }
 
-func NewEForm(fields ...IField) *EForm {
-	form := EForm{}
+func NewForm(formParse interface{}) *Form {
+	form := Form{}
 	form.fields = make(map[string]IField)
-	for _, field := range fields {
-		form.fields[field.GetName()] = field
+	_form := reflect.ValueOf(formParse).Elem()
+	for i := 0; i < _form.NumField(); i++ {
+		field := _form.Field(i)
+		//把非IField排除
+		if f, ok := field.Interface().(IField); ok {
+			form.fields[f.GetName()] = f
+		}
 	}
 	return &form
 }
 
-func (form *EForm) Validate(r *http.Request) bool {
+/*从请求中分析表单
+interface{} 返回存有表单值的实例对象
+*Form 返回带方法的Form对象
+*/
+func ParseForm(formParse interface{}, r *http.Request) (interface{}, *Form) {
+	form := NewForm(formParse)
+	for name, filed := range form.fields {
+		filed.SetValue(strings.TrimSpace(r.FormValue(name)))
+	}
+	_form := reflect.ValueOf(formParse).Elem()
+	for i := 0; i < _form.NumField(); i++ {
+		field := _form.Field(i)
+		//把非IField排除
+		if f, ok := field.Interface().(IField); ok {
+			f = form.fields[f.GetName()]
+		}
+	}
+	return _form.Interface(), form
+}
+
+func (form *Form) Validate(r *http.Request) bool {
 	result := true
-	for name, field := range form.fields {
-		field.SetValue(strings.TrimSpace(r.FormValue(name)))
+	for _, field := range form.fields {
 		if !field.Validate() {
 			result = false
 		}
@@ -32,35 +55,31 @@ func (form *EForm) Validate(r *http.Request) bool {
 	return result
 }
 
-func (form *EForm) Label(name string, attrs ...string) template.HTML {
+func (form *Form) Label(name string, attrs ...string) template.HTML {
 	field := form.fields[name]
 
 	return field.Label(attrs)
 }
 
-func (form *EForm) XsrfHtml() template.HTML {
-	return template.HTML(fmt.Sprintf(`<input type="hidden" value="%s" name=%q id=%q>`, form.Xsrf, "_xsrf_", "_xsrf_"))
-}
-
-func (form *EForm) Render(name string, attrs ...string) template.HTML {
+func (form *Form) Render(name string, attrs ...string) template.HTML {
 	field := form.fields[name]
 	return field.Render(attrs)
 }
 
-func (form *EForm) Value(name string) string {
+func (form *Form) Value(name string) string {
 	return form.fields[name].GetValue()
 }
 
-func (form *EForm) SetValue(name, value string) {
+func (form *Form) SetValue(name, value string) {
 	form.fields[name].SetValue(value)
 }
 
-func (form *EForm) AddError(name, err string) {
+func (form *Form) AddError(name, err string) {
 	field := form.fields[name]
 	field.AddError(err)
 }
 
-func (form *EForm) Errors() []string {
+func (form *Form) Errors() []string {
 	var errors []string
 	for _, field := range form.fields {
 		for _, err := range field.GetErrors() {
