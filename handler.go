@@ -118,16 +118,13 @@ func (self *Handler) Redirect(url string, permanent bool) {
 
 //xsrf 验证
 func (self *Handler) ValidXsrf() bool {
-	xsrf, ok := self.Request.Form["xsrf"]
-	xsrfRaw, okRaw := self.Session.GetSession("xsrf").(string)
-	if ok && okRaw {
-		if xsrf[0] == xsrfRaw {
-			return true
-		} else {
-			return false
-		}
-	} else {
+	xsrfRaw, okRaw := self.Session.GetSession(self.Application.Setting.XsrfKey).(string)
+	//当从session中读取到xsrf值并且该值与用户提交表单中的xsrf一致时,返回true
+	//其他情况均返回false
+	if okRaw && (self.Form.Xsrf == xsrfRaw) {
 		return true
+	} else {
+		return false
 	}
 }
 
@@ -184,7 +181,7 @@ func (self *Handler) Render(tplPath string) {
 	d := make(map[string]interface{})
 	if self.Form != nil {
 		self.Form.Xsrf = base64.StdEncoding.EncodeToString([]byte(time.Now().Format(time.RFC3339)))[22:30] + randString(8)
-		self.Session.SetSession("xsrf", self.Form.Xsrf)
+		self.Session.SetSession(self.Application.Setting.XsrfKey, self.Form.Xsrf)
 		d["form"] = self.Form
 	}
 	self.FlushSession()

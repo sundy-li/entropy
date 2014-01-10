@@ -207,7 +207,7 @@ func (self *Application) processStaticRequest(rw http.ResponseWriter, req *http.
 func (self *Application) Go(host string, port int) {
 	addr := fmt.Sprintf("%s:%d", host, port)
 	go func() {
-		fmt.Println("Server is listening : ", addr)
+		fmt.Println("Server is listening at ", addr)
 	}()
 	log.Fatalln(http.ListenAndServe(addr, self))
 }

@@ -18,6 +18,7 @@ type Setting struct {
 	Secret            string
 	FlashCookieName   string
 	SessionCookieName string
+	XsrfKey           string
 }
 
 var (
@@ -52,6 +53,9 @@ func NewSetting(fileName string) *Setting {
 		}
 		if globalSetting.Secret == "" {
 			panic("必须提供一个密匙！Secret!")
+		}
+		if globalSetting.XsrfKey == "" {
+			panic("必须提供一个xsrf的key!")
 		}
 		log.Printf("%v", globalSetting)
 		return globalSetting
