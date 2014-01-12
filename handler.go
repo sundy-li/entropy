@@ -37,8 +37,7 @@ type Handler struct {
 	Request     *http.Request
 	Session     *Session
 	Application *Application
-	ErrorMsg    map[string]string
-	SuccessMsg  map[string]string
+	Messages    map[string]string
 	TplData     map[string]interface{}
 	Form        *Form
 }
@@ -49,8 +48,7 @@ func (self *Handler) Initialize(rw http.ResponseWriter, req *http.Request, app *
 	self.Request = req
 	self.Response = Response{rw}
 	self.Application = app
-	self.ErrorMsg = make(map[string]string)
-	self.SuccessMsg = make(map[string]string)
+	self.Messages = make(map[string]string)
 	self.TplData = make(map[string]interface{})
 	self.Session = &Session{
 		store: NewCookieSession(app.Setting.SessionCookieName, self),
@@ -94,10 +92,18 @@ func (self *Handler) Options() {
 }
 
 func (self *Handler) RestoreSession() {
+	_tmp, err := self.GetSecureCookie(self.Application.Setting.FlashCookieName)
+	if err == nil {
+		json.Unmarshal([]byte(_tmp), self.Messages)
+	}
 	self.Session.Restore()
 }
 
 func (self *Handler) FlushSession() {
+	_tmp, err := json.Marshal(self.Messages)
+	if err == nil {
+		self.SetSecureCookie(self.Application.Setting.FlashCookieName, string(_tmp), 0)
+	}
 	self.Session.Flush()
 }
 
@@ -173,16 +179,7 @@ func (self *Handler) Render(tplPath string) {
 	if tpl == nil {
 		panic("没有找到指定的模板！")
 	}
-	//d := make(map[string]interface{})
 	self.FlushSession()
-	// if self.HasFlashedMessages(0) {
-	// 	d["err"] = self.ErrorMsg
-	// }
-	// if self.HasFlashedMessages(1) {
-	// 	d["msg"] = self.SuccessMsg
-	// }
-	// d["ctx"] = self
-	// d["vars"] = self.tplData
 	self.Response.SetContentType("html")
 	tpl.Execute(self.Response.ResponseWriter, self)
 }
@@ -243,21 +240,12 @@ func (self *Handler) GetSecureCookie(key string) (string, error) {
 	}
 }
 
-//刷错误消息
-func (self *Handler) FlashError(key, msg string) {
-	self.ErrorMsg[key] = msg
-}
-
-//刷成功消息
-func (self *Handler) FlashSuccess(key, msg string) {
-	self.SuccessMsg[key] = msg
+//刷消息
+func (self *Handler) Flash(key, msg string) {
+	self.Messages[key] = msg
 }
 
 //判断是否有消息被刷
-func (self *Handler) HasFlashedMessages(mtype int) bool {
-	if mtype == 0 {
-		return len(self.ErrorMsg) > 0
-	} else {
-		return len(self.SuccessMsg) > 0
-	}
+func (self *Handler) HasFlashedMessages() bool {
+	return len(self.Messages) > 0
 }
