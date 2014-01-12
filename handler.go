@@ -130,7 +130,7 @@ func (self *Handler) Reverse(name string, arg ...interface{}) string {
 		if err != nil {
 			return err.Error()
 		} else {
-			return url[1:0]
+			return url[1:]
 		}
 	}
 	return fmt.Sprintf("处理器 %s 没有找到", name)
