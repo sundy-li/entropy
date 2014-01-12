@@ -57,11 +57,16 @@ func (self *Application) Initialize() {
 			if err != nil {
 				return err.Error()
 			} else {
-				log.Println(url)
 				return url[1:]
 			}
 		}
 		return fmt.Sprintf("处理器 %s 没有找到", name)
+	}
+	self.TplFuncs["empty"] = func(i interface{}) bool {
+		if s, ok := i.(string); ok {
+			return s == ""
+		}
+		return true
 	}
 	//程序执行时间,返回毫秒
 	self.TplFuncs["eslape"] = func(handler IHandler) string {
