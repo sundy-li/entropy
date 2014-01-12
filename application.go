@@ -57,6 +57,7 @@ func (self *Application) Initialize() {
 			if err != nil {
 				return err.Error()
 			} else {
+				log.Println(url)
 				return url[1:]
 			}
 		}
