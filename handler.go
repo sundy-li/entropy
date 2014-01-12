@@ -11,6 +11,7 @@ import (
 	"image/gif"
 	"image/jpeg"
 	"image/png"
+	"log"
 	"net/http"
 	"time"
 )
@@ -53,6 +54,7 @@ func (self *Handler) Initialize(rw http.ResponseWriter, req *http.Request, app *
 	self.Session = &Session{
 		store: NewCookieSession(app.Setting.SessionCookieName, self),
 	}
+	self.RestoreSession()
 }
 
 func (self *Handler) Prepare() {
@@ -94,7 +96,9 @@ func (self *Handler) Options() {
 func (self *Handler) RestoreSession() {
 	_tmp, err := self.GetSecureCookie(self.Application.Setting.FlashCookieName)
 	if err == nil {
-		json.Unmarshal([]byte(_tmp), self.Messages)
+		if err := json.Unmarshal([]byte(_tmp), &self.Messages); err != nil {
+			log.Println(err)
+		}
 	}
 	self.Session.Restore()
 }
@@ -112,15 +116,16 @@ func (self *Handler) GetStartTime() time.Time {
 }
 
 //跳转
-func (self *Handler) Redirect(url string, permanent bool) {
-	var status int
-	if permanent {
-		status = 301
-	} else {
-		status = 302
-	}
-	self.Response.Header().Set("Location", url)
-	self.Response.WriteHeader(status)
+func (self *Handler) Redirect(url string) {
+	self.FlushSession()
+	redirectScripts := fmt.Sprintf(
+		`<script language="javascript">
+		function redirect() {
+			location.href="%s";
+		}
+		setTimeout(redirect,500);
+		</script>`, url)
+	self.Response.Write([]byte(redirectScripts))
 }
 
 //reverse
