@@ -55,15 +55,14 @@ func (form *Form) Validate(r *http.Request) bool {
 	return result
 }
 
-func (form *Form) Label(name string, attrs ...string) template.HTML {
+func (form *Form) Label(name string, class string, attrs ...string) template.HTML {
 	field := form.fields[name]
-
-	return field.Label(attrs)
+	return field.Label(class, attrs)
 }
 
-func (form *Form) Render(name string, attrs ...string) template.HTML {
+func (form *Form) Render(name string, class string, attrs ...string) template.HTML {
 	field := form.fields[name]
-	return field.Render(attrs)
+	return field.Render(class, attrs)
 }
 
 func (form *Form) Value(name string) string {

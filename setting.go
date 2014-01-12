@@ -53,6 +53,7 @@ func NewSetting(fileName string) *Setting {
 
 		}
 		if globalSetting.Secret == "" {
+			log.Println(globalSetting)
 			panic("必须提供一个密匙！Secret!")
 		}
 		return globalSetting
