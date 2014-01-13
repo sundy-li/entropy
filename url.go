@@ -18,14 +18,14 @@ type URLSpec struct {
 	//处理该路径请求的处理器反射值
 	Handler reflect.Value
 	//英文名称
-	eName string
+	Name string
 	//中文名称
-	cName string
+	CName string
 }
 
 //URLSpec的构造函数
 func NewURLSpec(pattern string, handler reflect.Value, ename string, cname string) *URLSpec {
-	spec := &URLSpec{Pattern: pattern, Handler: handler, eName: ename, cName: cname}
+	spec := &URLSpec{Pattern: pattern, Handler: handler, Name: ename, CName: cname}
 	var err error
 	//将原始路径转为正则表达式
 	spec.Regex, err = spec.Url2Regexp()
