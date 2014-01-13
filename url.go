@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -57,8 +58,10 @@ func (self *URLSpec) UrlSetParams(args ...interface{}) (url string, err error) {
 		for index, arg := range args {
 			if s, ok := arg.(string); ok {
 				url = strings.Replace(url, matched[index], s, -1)
+			} else if i, ok := arg.(int64); ok {
+				url = strings.Replace(url, matched[index], strconv.FormatInt(i, 10), -1)
 			} else {
-				err = errors.New(fmt.Sprintf("参数%v不是string类型", arg))
+				err = errors.New(fmt.Sprintf("参数%v须为string或int64类型", arg))
 				return
 			}
 
