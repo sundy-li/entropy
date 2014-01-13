@@ -106,7 +106,7 @@ func (self *Handler) RestoreSession() {
 func (self *Handler) FlushSession() {
 	_tmp, err := json.Marshal(self.Messages)
 	if err == nil {
-		self.SetSecureCookie(self.Application.Setting.FlashCookieName, string(_tmp), 0)
+		self.SetSecureCookie(self.Application.Setting.FlashCookieName, string(_tmp), 2)
 	}
 	self.Session.Flush()
 }
@@ -123,7 +123,7 @@ func (self *Handler) Redirect(url string) {
 		function redirect() {
 			location.href="%s";
 		}
-		setTimeout(redirect,500);
+		setTimeout(redirect,1);
 		</script>`, url)
 	self.Response.Write([]byte(redirectScripts))
 }
