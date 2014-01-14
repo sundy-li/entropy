@@ -100,6 +100,22 @@ func (self *Handler) Options() {
 	panic(errors.New("OPTIONS method is not implemented"))
 }
 
+func (self *Handler) GetQuery(paramName string, defaultValue string) string {
+	if param, ok := self.Request.Form[paramName]; ok {
+		return param[0]
+	} else {
+		return defaultValue
+	}
+}
+
+func (self *Handler) GetQueries(paramName string) []string {
+	if param, ok := self.Request.Form[paramName]; ok {
+		return param
+	} else {
+		return nil
+	}
+}
+
 func (self *Handler) RestoreSession() {
 	_tmp, err := self.GetSecureCookie(self.Application.Setting.FlashCookieName)
 	if err == nil {
