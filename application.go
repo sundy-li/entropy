@@ -170,11 +170,12 @@ func (self *Application) findMatchedRequestHandler(req *http.Request) (matchedSp
 func (self *Application) processRequestHandler(spec *URLSpec, req *http.Request, rw http.ResponseWriter) {
 	//处理器的Initialize方法
 	methodInitialize := spec.Handler.MethodByName("Initialize")
-	argsInitialize := make([]reflect.Value, 4)
+	argsInitialize := make([]reflect.Value, 5)
 	argsInitialize[0] = reflect.ValueOf(spec.Name)
-	argsInitialize[1] = reflect.ValueOf(rw)
-	argsInitialize[2] = reflect.ValueOf(req)
-	argsInitialize[3] = reflect.ValueOf(self)
+	argsInitialize[1] = reflect.ValueOf(spec.CName)
+	argsInitialize[2] = reflect.ValueOf(rw)
+	argsInitialize[3] = reflect.ValueOf(req)
+	argsInitialize[4] = reflect.ValueOf(self)
 	methodInitialize.Call(argsInitialize)
 
 	//处理器的Prepare方法

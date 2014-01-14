@@ -18,7 +18,7 @@ import (
 
 //处理器接口
 type IHandler interface {
-	Initialize(name string, rw http.ResponseWriter, req *http.Request, app *Application)
+	Initialize(name string, cname string, rw http.ResponseWriter, req *http.Request, app *Application)
 	Prepare()
 	Get()
 	Post()
@@ -29,12 +29,12 @@ type IHandler interface {
 	Put()
 	Options()
 	GetStartTime() time.Time
-	GetMyName() string
 }
 
 //请求处理器
 type Handler struct {
-	name        string
+	Name        string
+	CName       string
 	startTime   time.Time
 	Response    Response
 	Request     *http.Request
@@ -46,9 +46,10 @@ type Handler struct {
 }
 
 //初始化请求处理器
-func (self *Handler) Initialize(name string, rw http.ResponseWriter, req *http.Request, app *Application) {
+func (self *Handler) Initialize(name string, cname string, rw http.ResponseWriter, req *http.Request, app *Application) {
 	self.startTime = time.Now()
-	self.name = name
+	self.Name = name
+	self.CName = cname
 	self.Request = req
 	self.Response = Response{rw}
 	self.Application = app
@@ -58,10 +59,6 @@ func (self *Handler) Initialize(name string, rw http.ResponseWriter, req *http.R
 		store: NewCookieSession(app.Setting.SessionCookieName, self),
 	}
 	self.RestoreSession()
-}
-
-func (self *Handler) GetMyName() string {
-	return self.name
 }
 
 func (self *Handler) Prepare() {
