@@ -203,10 +203,10 @@ func (self *Handler) GenerateXsrfHtml() template.HTML {
 //渲染模板
 func (self *Handler) Render(tplPath string) {
 	tpl := self.Application.TplEngine.Lookup(tplPath)
-	tpl.Funcs(self.Application.TplFuncs)
 	if tpl == nil {
 		panic("没有找到指定的模板！")
 	}
+	tpl.Funcs(self.Application.TplFuncs)
 	self.FlushSession()
 	self.Response.SetContentType("html")
 	tpl.Execute(self.Response.ResponseWriter, self)
