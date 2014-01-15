@@ -168,8 +168,9 @@ func (self *Application) findMatchedRequestHandler(req *http.Request) (matchedSp
 
 //处理请求
 func (self *Application) processRequestHandler(spec *URLSpec, req *http.Request, rw http.ResponseWriter) {
+	handler:=reflect.New(reflect.Indirect(spec.Handler).Type())
 	//处理器的Initialize方法
-	methodInitialize := spec.Handler.MethodByName("Initialize")
+	methodInitialize:=handler.MethodByName("Initialize")
 	argsInitialize := make([]reflect.Value, 5)
 	argsInitialize[0] = reflect.ValueOf(spec.Name)
 	argsInitialize[1] = reflect.ValueOf(spec.CName)
@@ -179,8 +180,9 @@ func (self *Application) processRequestHandler(spec *URLSpec, req *http.Request,
 	methodInitialize.Call(argsInitialize)
 
 	//处理器的Prepare方法
-	methodPrepare := spec.Handler.MethodByName("Prepare")
+	methodPrepare := handler.MethodByName("Prepare")
 	methodPrepare.Call([]reflect.Value{})
+
 	//处理表单
 	req.ParseForm()
 	req.ParseMultipartForm(1 << 25) // 32M 1<< 25 /1024/1024
@@ -189,11 +191,11 @@ func (self *Application) processRequestHandler(spec *URLSpec, req *http.Request,
 		req.Form[name] = arg
 	}
 	//请求所对应的方法
-	method := spec.Handler.MethodByName(strings.Title(strings.ToLower(req.Method)))
+	method := handler.MethodByName(strings.Title(strings.ToLower(req.Method)))
 	method.Call([]reflect.Value{})
 
 	//处理器的Finish方法
-	methodFinish := spec.Handler.MethodByName("Finish")
+	methodFinish := handler.MethodByName("Finish")
 	methodFinish.Call([]reflect.Value{})
 }
 
