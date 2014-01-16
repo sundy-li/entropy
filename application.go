@@ -73,6 +73,18 @@ func (self *Application) Initialize() {
 		return fmt.Sprintf("%f", time.Since(handler.GetStartTime()).Seconds()*1000)
 	}
 
+	self.TplFuncs["int_in_array"] = func(spec int64,specs []int64) bool{
+		if len(specs)==0 {
+			return false
+		}
+		for _,v:=range specs{
+			if v==spec {
+				return true
+			}
+		}
+		return false
+	}
+
 	//构造模板引擎
 	tplBasePath := path.Join(self.AppPath, self.Setting.TemplateDir)
 	dir, err := os.Stat(tplBasePath)
