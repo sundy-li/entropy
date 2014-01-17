@@ -18,6 +18,7 @@ type Setting struct {
 	Secret            string
 	FlashCookieName   string
 	SessionCookieName string
+	SessionIdCookieName string
 	Xsrf              bool
 }
 
@@ -40,6 +41,7 @@ func NewSetting(fileName string) *Setting {
 			StaticDir:         "static",
 			FlashCookieName:   "msgs",
 			SessionCookieName: "session",
+			SessionIdCookieName:"_eid_",
 			Xsrf:              true,
 		}
 		log.Println("Loaded default setting")

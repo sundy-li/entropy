@@ -4,21 +4,13 @@ import (
 	"encoding/json"
 )
 
-var (
-	//全局session存储
-	globalSessionStore ISessionStore
-)
-
-//CookieSession构造函数,使用全局单例,因为一个应用不可能要求session处于多种存储状态
+//CookieSession构造函数
 func NewCookieSession(sessionKey string, handler *Handler) ISessionStore {
-	if globalSessionStore == nil {
-		globalSessionStore = &CookieSession{
-			SessionData: make(map[string]interface{}),
-			sessionKey:  sessionKey,
-			handler:     handler,
-		}
+	return &CookieSession{
+		SessionData: make(map[string]interface{}),
+		sessionKey:  sessionKey,
+		handler:     handler,
 	}
-	return globalSessionStore
 }
 
 //CookieSession 结构体
@@ -30,7 +22,7 @@ type CookieSession struct {
 }
 
 //恢复cookie中的数据到SessionData中
-func (self *CookieSession) Restore() {
+func (self *CookieSession) Restore(sessionId string) {
 	sessionStr, err := self.handler.GetSecureCookie(self.sessionKey)
 	if err != nil {
 		if len(self.SessionData) == 0 {

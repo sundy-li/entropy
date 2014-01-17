@@ -33,6 +33,8 @@ type Application struct {
 	TplFuncs map[string]interface{}
 	//模板引擎
 	TplEngine *template.Template
+	//session
+	Session *Session
 }
 
 //初始化程序,包括模板函数和引擎的初始化
@@ -73,12 +75,12 @@ func (self *Application) Initialize() {
 		return fmt.Sprintf("%f", time.Since(handler.GetStartTime()).Seconds()*1000)
 	}
 
-	self.TplFuncs["int_in_array"] = func(spec int64,specs []int64) bool{
-		if len(specs)==0 {
+	self.TplFuncs["int_in_array"] = func(spec int64, specs []int64) bool {
+		if len(specs) == 0 {
 			return false
 		}
-		for _,v:=range specs{
-			if v==spec {
+		for _, v := range specs {
+			if v == spec {
 				return true
 			}
 		}
@@ -180,9 +182,9 @@ func (self *Application) findMatchedRequestHandler(req *http.Request) (matchedSp
 
 //处理请求
 func (self *Application) processRequestHandler(spec *URLSpec, req *http.Request, rw http.ResponseWriter) {
-	handler:=reflect.New(reflect.Indirect(spec.Handler).Type())
+	handler := reflect.New(reflect.Indirect(spec.Handler).Type())
 	//处理器的Initialize方法
-	methodInitialize:=handler.MethodByName("Initialize")
+	methodInitialize := handler.MethodByName("Initialize")
 	argsInitialize := make([]reflect.Value, 5)
 	argsInitialize[0] = reflect.ValueOf(spec.Name)
 	argsInitialize[1] = reflect.ValueOf(spec.CName)

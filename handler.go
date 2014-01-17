@@ -55,8 +55,10 @@ func (self *Handler) Initialize(name string, cname string, rw http.ResponseWrite
 	self.Application = app
 	self.Messages = make(map[string]string)
 	self.TplData = make(map[string]interface{})
-	self.Session = &Session{
-		store: NewCookieSession(app.Setting.SessionCookieName, self),
+	if self.Application.Session == nil {
+		self.Session = &Session{
+			store: NewCookieSession(app.Setting.SessionCookieName, self),
+		}
 	}
 	self.RestoreSession()
 }
@@ -120,7 +122,14 @@ func (self *Handler) RestoreSession() {
 			log.Println(err)
 		}
 	}
-	self.Session.Restore()
+	sessionId, err := self.GetCookie(self.Application.Setting.SessionIdCookieName)
+	if err != nil {
+		log.Println(err.Error())
+		sessionId = base64.StdEncoding.EncodeToString([]byte(time.Now().Format(time.RFC3339)))[22:30] + randString(8)
+		self.SetCookie(self.Application.Setting.SessionIdCookieName, sessionId, 20)
+	}
+	log.Println(sessionId)
+	self.Session.Restore(sessionId)
 }
 
 func (self *Handler) FlushSession() {
