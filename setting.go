@@ -1,14 +1,11 @@
 package entropy
 
 import (
-	//"crypto/sha1"
 	"encoding/json"
-	//"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"path"
-	//"time"
 )
 
 type Setting struct {

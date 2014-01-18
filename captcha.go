@@ -1,13 +1,14 @@
 package entropy
 
 import (
-	"code.google.com/p/freetype-go/freetype"
-	"code.google.com/p/freetype-go/freetype/truetype"
 	"image"
 	"image/draw"
 	"io/ioutil"
 	"math/rand"
 	"time"
+
+	"code.google.com/p/freetype-go/freetype"
+	"code.google.com/p/freetype-go/freetype/truetype"
 )
 
 const (

@@ -2,8 +2,9 @@ package entropy
 
 import (
 	"fmt"
-	v "github.com/frank418/entropy/validators"
 	"html/template"
+
+	v "github.com/frank418/entropy/validators"
 )
 
 type IField interface {
@@ -170,10 +171,10 @@ func (field *SelectField) Render(class string, attrs []string) template.HTML {
 		if choice.Value == field.value {
 			selected = " selected"
 		}
-		options += fmt.Sprintf(`<option value="%q" %s>%s</option>`, choice.Value, selected, choice.Label)
+		options += fmt.Sprintf(`<option value="%s" %s>%s</option>`, choice.Value, selected, choice.Label)
 	}
 
-	return template.HTML(fmt.Sprintf(`<select id="%q" class="%s" name="%q" %s>%s</select>`, field.name, class, field.name, attrsStr, options))
+	return template.HTML(fmt.Sprintf(`<select id="%s" class="%s" name="%s" %s>%s</select>`, field.name, class, field.name, attrsStr, options))
 }
 
 func NewSelectField(name string, label string, choices []Choice, defaultValue string, validators ...IValidator) *SelectField {
