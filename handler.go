@@ -40,7 +40,7 @@ type Handler struct {
 	Request     *http.Request
 	Session     *Session
 	Application *Application
-	Messages    map[string]string
+	Messages    map[string][]string
 	TplData     map[string]interface{}
 	Form        *Form
 }
@@ -53,7 +53,7 @@ func (self *Handler) Initialize(name string, cname string, rw http.ResponseWrite
 	self.Request = req
 	self.Response = Response{rw}
 	self.Application = app
-	self.Messages = make(map[string]string)
+	self.Messages = make(map[string][]string)
 	self.TplData = make(map[string]interface{})
 	//如果开发者没有提供自己实现的session存储,则默认使用cookie
 	if self.Application.Session == nil {
@@ -264,10 +264,5 @@ func (self *Handler) GetSecureCookie(key string) (string, error) {
 
 //刷消息
 func (self *Handler) Flash(key, msg string) {
-	self.Messages[key] = msg
-}
-
-//判断是否有消息被刷
-func (self *Handler) HasFlashedMessages() bool {
-	return len(self.Messages) > 0
+	self.Messages[key] = append(self.Messages[key], msg)
 }
