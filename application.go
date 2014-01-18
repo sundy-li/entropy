@@ -68,6 +68,9 @@ func (self *Application) Initialize() {
 		if s, ok := i.(string); ok {
 			return s == ""
 		}
+		if a, ok := i.([]string); ok {
+			return len(a) == 0
+		}
 		return true
 	}
 	//程序执行时间,返回毫秒
