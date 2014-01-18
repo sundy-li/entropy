@@ -141,14 +141,8 @@ func (self *Handler) GetStartTime() time.Time {
 //跳转
 func (self *Handler) Redirect(url string) {
 	self.FlushSession()
-	redirectScripts := fmt.Sprintf(
-		`<script language="javascript">
-		function redirect() {
-			location.href="%s";
-		}
-		setTimeout(redirect,1);
-		</script>`, url)
-	self.Response.Write([]byte(redirectScripts))
+	self.Response.SetHeader("Location", url, true)
+	self.Response.WriteHeader(302)
 }
 
 //reverse
