@@ -74,7 +74,17 @@ func (self *Application) Initialize() {
 	self.TplFuncs["eslape"] = func(handler IHandler) string {
 		return fmt.Sprintf("%f", time.Since(handler.GetStartTime()).Seconds()*1000)
 	}
-
+	self.TplFuncs["str_in_array"] = func(key string, strs []string) bool {
+		if len(strs) == 0 {
+			return false
+		}
+		for _, s := range strs {
+			if s == key {
+				return true
+			}
+		}
+		return false
+	}
 	//构造模板引擎
 	tplBasePath := path.Join(self.AppPath, self.Setting.TemplateDir)
 	dir, err := os.Stat(tplBasePath)
