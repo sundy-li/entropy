@@ -9,11 +9,13 @@ import (
 
 type Form struct {
 	fields map[string]IField
+	errors map[string][]string
 }
 
 func NewForm(formParse interface{}) *Form {
 	form := Form{}
 	form.fields = make(map[string]IField)
+	form.errors = make(map[string][]string, 0)
 	_form := reflect.ValueOf(formParse).Elem()
 	for i := 0; i < _form.NumField(); i++ {
 		field := _form.Field(i)
@@ -48,7 +50,9 @@ func ParseForm(formParse interface{}, r *http.Request) (interface{}, *Form) {
 func (form *Form) Validate(r *http.Request) bool {
 	result := true
 	for _, field := range form.fields {
-		if !field.Validate() {
+		ret, err := field.Validate()
+		if !ret {
+			form.errors[field.GetName()] = append(form.errors[field.GetName()], err)
 			result = false
 		}
 	}
@@ -73,17 +77,16 @@ func (form *Form) SetValue(name, value string) {
 	form.fields[name].SetValue(value)
 }
 
-func (form *Form) AddError(name, err string) {
-	field := form.fields[name]
-	field.AddError(err)
-}
-
-func (form *Form) Errors() []string {
-	var errors []string
-	for _, field := range form.fields {
-		for _, err := range field.GetErrors() {
-			errors = append(errors, err)
+func (form *Form) AllErrors() []string {
+	var errs []string
+	for _, list := range form.errors {
+		for _, e := range list {
+			errs = append(errs, e)
 		}
 	}
-	return errors
+	return errs
+}
+
+func (form *Form) Errors() map[string][]string {
+	return form.errors
 }

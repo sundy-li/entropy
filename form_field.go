@@ -2,27 +2,24 @@ package entropy
 
 import (
 	"fmt"
+	v "github.com/frank418/entropy/validators"
 	"html/template"
 )
 
 type IField interface {
 	Label(class string, attrs []string) template.HTML
 	Render(class string, attrs []string) template.HTML
-	Validate() bool
+	Validate() (bool, string)
 	GetName() string
 	GetValue() string
 	SetValue(value string)
 	IsName(name string) bool
-	HasErrors() bool
-	GetErrors() []string
-	AddError(err string)
 }
 
 type BaseField struct {
 	name       string
 	label      string
 	value      string
-	errors     []string
 	validators []IValidator
 }
 
@@ -36,10 +33,6 @@ func (field *BaseField) Label(class string, attrs []string) template.HTML {
 	return template.HTML(fmt.Sprintf(`<label for="%s" class="%s" %s>%s</label>`, field.name, class, attrsStr, field.label))
 }
 
-func (field *BaseField) HasErrors() bool {
-	return len(field.errors) > 0
-}
-
 func (field *BaseField) Render(class string, attrs []string) template.HTML {
 	return template.HTML("")
 }
@@ -48,35 +41,26 @@ func (field *BaseField) GetName() string {
 	return field.name
 }
 
-func (field *BaseField) AddError(err string) {
-	field.errors = append(field.errors, err)
-}
-
-func (field *BaseField) GetErrors() []string {
-	return field.errors
-}
-
-func (field *BaseField) Validate() bool {
+func (field *BaseField) Validate() (bool, string) {
 	// 如果有Required并且输入为空,不再进行其他检查
 	for _, validator := range field.validators {
-		if _, ok := validator.(Required); ok {
+		if _, ok := validator.(v.Required); ok {
 			if ok, message := validator.Verify(field.GetValue()); !ok {
-				field.errors = append(field.errors, field.label+message)
-				return false
+				return false, field.label + message
 			}
 		}
 	}
 
 	result := true
-
+	msg := ""
 	for _, validator := range field.validators {
 		if ok, message := validator.Verify(field.GetValue()); !ok {
 			result = false
-			field.errors = append(field.errors, message)
+			msg = message
 		}
 	}
 
-	return result
+	return result, msg
 }
 
 func (field *BaseField) GetValue() string {
