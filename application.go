@@ -33,8 +33,6 @@ type Application struct {
 	TplFuncs map[string]interface{}
 	//模板引擎
 	TplEngine *template.Template
-	//session
-	Session *Session
 }
 
 //初始化程序,包括模板函数和引擎的初始化
@@ -65,6 +63,9 @@ func (self *Application) Initialize() {
 		return fmt.Sprintf("处理器 %s 没有找到", name)
 	}
 	self.TplFuncs["empty"] = func(i interface{}) bool {
+		if i == nil {
+			return true
+		}
 		if s, ok := i.(string); ok {
 			return s == ""
 		}

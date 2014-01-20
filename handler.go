@@ -38,7 +38,6 @@ type Handler struct {
 	startTime   time.Time
 	Response    Response
 	Request     *http.Request
-	Session     *Session
 	Application *Application
 	Messages    map[string][]string
 	TplData     map[string]interface{}
@@ -56,13 +55,7 @@ func (self *Handler) Initialize(name string, cname string, rw http.ResponseWrite
 	self.Application = app
 	self.Messages = make(map[string][]string)
 	self.TplData = make(map[string]interface{})
-	//如果开发者没有提供自己实现的session存储,则默认使用cookie
-	if self.Application.Session == nil {
-		self.Session = &Session{
-			store: NewCookieSession(app.Setting.SessionCookieName, self),
-		}
-	}
-	self.RestoreSession()
+	self.RestoreMesssage()
 }
 
 func (self *Handler) Prepare() {
@@ -133,17 +126,16 @@ func (self *Handler) GetQueries(paramName string) []string {
 	}
 }
 
-func (self *Handler) RestoreSession() {
+func (self *Handler) RestoreMesssage() {
 	_tmp, err := self.GetSecureCookie(self.Application.Setting.FlashCookieName)
 	if err == nil {
 		if err := json.Unmarshal([]byte(_tmp), &self.Messages); err != nil {
 			log.Println(err)
 		}
 	}
-	self.Session.Restore()
 }
 
-func (self *Handler) FlushSession() {
+func (self *Handler) FlushMessage() {
 	_tmp, err := json.Marshal(self.Messages)
 	if err == nil {
 		self.SetSecureCookie(self.Application.Setting.FlashCookieName, string(_tmp), 2)
@@ -151,7 +143,6 @@ func (self *Handler) FlushSession() {
 	if !self.IsAjax() {
 		self.SetSecureCookie(XSRF, self.Xsrf, 600)
 	}
-	self.Session.Flush()
 }
 
 func (self *Handler) GetStartTime() time.Time {
@@ -160,8 +151,9 @@ func (self *Handler) GetStartTime() time.Time {
 
 //跳转
 func (self *Handler) Redirect(url string) {
-	self.FlushSession()
+	self.FlushMessage()
 	self.Response.SetHeader("Location", url, true)
+	self.Response.Write([]byte("redirecting"))
 	self.Response.WriteHeader(302)
 }
 
@@ -184,7 +176,7 @@ func (self *Handler) Assign(name string, value interface{}) {
 }
 
 func (self *Handler) RenderImage(img image.Image, imgType int) {
-	self.FlushSession()
+	self.FlushMessage()
 	b := bufio.NewWriter(self.Response.ResponseWriter)
 	switch imgType {
 	case IMAGEPNG:
@@ -219,21 +211,21 @@ func (self *Handler) Render(tplPath string) {
 		panic("没有找到指定的模板！")
 	}
 	tpl.Funcs(self.Application.TplFuncs)
-	self.FlushSession()
+	self.FlushMessage()
 	self.Response.SetContentType("html")
 	tpl.Execute(self.Response.ResponseWriter, self)
 }
 
 //渲染文本
 func (self *Handler) RenderText(content string) {
-	self.FlushSession()
+	self.FlushMessage()
 	self.Response.SetContentType("text")
 	fmt.Fprint(self.Response, content)
 }
 
 //渲染Json
 func (self *Handler) RenderJson(object interface{}) {
-	self.FlushSession()
+	self.FlushMessage()
 	self.Response.SetContentType("json")
 	b, _ := json.Marshal(object)
 	fmt.Fprint(self.Response, string(b))
@@ -245,6 +237,7 @@ func (self *Handler) SetCookie(key, value string, age int) {
 	if age != 0 {
 		cookie.MaxAge = age
 	}
+	log.Printf("%+v", cookie)
 	http.SetCookie(self.Response.ResponseWriter, &cookie)
 }
 
@@ -261,6 +254,7 @@ func (self *Handler) GetCookie(key string) (string, error) {
 
 //设置加密cookie,使用aes加密
 func (self *Handler) SetSecureCookie(key, value string, age int) {
+	log.Printf("%+v %+v", key, value)
 	AESValue, e := AesEncrypt([]byte(value), []byte(self.Application.Setting.Secret))
 	if e != nil {
 		panic(e.Error())
@@ -274,8 +268,14 @@ func (self *Handler) GetSecureCookie(key string) (string, error) {
 	if err != nil {
 		return "", err
 	} else {
-		byte_value, _ := base64.StdEncoding.DecodeString(cookie_value)
-		value, _ := AesDecrypt(byte_value, []byte(self.Application.Setting.Secret))
+		byte_value, err := base64.StdEncoding.DecodeString(cookie_value)
+		if err != nil {
+			log.Println("getsecurecookie", err.Error())
+		}
+		value, err := AesDecrypt(byte_value, []byte(self.Application.Setting.Secret))
+		if err != nil {
+			log.Println("getsecurecookie", err.Error())
+		}
 		return string(value), nil
 	}
 }
