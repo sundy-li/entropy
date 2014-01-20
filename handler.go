@@ -73,6 +73,18 @@ func (self *Handler) GetXsrf() string {
 	return self.Xsrf
 }
 
+func (self *Handler) IsAjax() bool {
+	if value, ajax := self.Request.Header["X-Requested-With"]; ajax {
+		if value[0] == "XMLHttpRequest" {
+			return true
+		} else {
+			return false
+		}
+	} else {
+		return false
+	}
+}
+
 func (self *Handler) Get() {
 	panic(errors.New("GET method is not implemented"))
 }
@@ -136,7 +148,9 @@ func (self *Handler) FlushSession() {
 	if err == nil {
 		self.SetSecureCookie(self.Application.Setting.FlashCookieName, string(_tmp), 2)
 	}
-	self.SetSecureCookie(XSRF, self.Xsrf, 600)
+	if !self.IsAjax() {
+		self.SetSecureCookie(XSRF, self.Xsrf, 600)
+	}
 	self.Session.Flush()
 }
 
