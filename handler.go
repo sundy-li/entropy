@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html/template"
 	"image"
 	"image/gif"
 	"image/jpeg"
@@ -29,6 +28,7 @@ type IHandler interface {
 	Put()
 	Options()
 	GetStartTime() time.Time
+	GetXsrf() string
 }
 
 //请求处理器
@@ -43,6 +43,7 @@ type Handler struct {
 	Messages    map[string][]string
 	TplData     map[string]interface{}
 	Form        *Form
+	Xsrf        string
 }
 
 //初始化请求处理器
@@ -65,7 +66,11 @@ func (self *Handler) Initialize(name string, cname string, rw http.ResponseWrite
 }
 
 func (self *Handler) Prepare() {
+	self.generateXsrf()
+}
 
+func (self *Handler) GetXsrf() string {
+	return self.Xsrf
 }
 
 func (self *Handler) Get() {
@@ -131,6 +136,7 @@ func (self *Handler) FlushSession() {
 	if err == nil {
 		self.SetSecureCookie(self.Application.Setting.FlashCookieName, string(_tmp), 2)
 	}
+	self.SetSecureCookie(XSRF, self.Xsrf, 600)
 	self.Session.Flush()
 }
 
@@ -188,10 +194,8 @@ func (self *Handler) RenderImage(img image.Image, imgType int) {
 	b.Flush()
 }
 
-func (self *Handler) GenerateXsrfHtml() template.HTML {
-	xsrfStr := base64.StdEncoding.EncodeToString([]byte(time.Now().Format(time.RFC3339)))[22:30] + randString(8)
-	self.SetSecureCookie(XSRF, xsrfStr, 600)
-	return template.HTML(fmt.Sprintf(`<input type="hidden" value="%s" name=%q id=%q>`, xsrfStr, XSRF, XSRF))
+func (self *Handler) generateXsrf() {
+	self.Xsrf = base64.StdEncoding.EncodeToString([]byte(time.Now().Format(time.RFC3339)))[22:30] + randString(8)
 }
 
 //渲染模板

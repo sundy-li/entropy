@@ -88,6 +88,9 @@ func (self *Application) Initialize() {
 		}
 		return false
 	}
+	self.TplFuncs["xsrf"] = func(handler IHandler) template.HTML {
+		return template.HTML(fmt.Sprintf(`<input type="hidden" value="%s" name=%q id=%q>`, handler.GetXsrf(), XSRF, XSRF))
+	}
 	//构造模板引擎
 	tplBasePath := path.Join(self.AppPath, self.Setting.TemplateDir)
 	dir, err := os.Stat(tplBasePath)
