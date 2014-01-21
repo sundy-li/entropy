@@ -22,11 +22,15 @@ var EntropyVersion = "Entropy 0.618"
 
 type Application struct {
 	//执行程序所在目录
-	AppPath string
-	//所有的请求处理器集合
+	AppPath    string
+	Blueprints map[string]*Blueprint
+	//application级别的请求处理器集合
 	NamedHandlers map[string]*URLSpec
+	//before
+	BeforeFilters []Filter
+	AfterFilters  []Filter
 	//错误处理器集合
-	ErrorHandlers map[int]http.HandlerFunc
+	ErrorHandlers map[int]Filter
 	//配置
 	Setting *Setting
 	//模板函数
@@ -52,6 +56,17 @@ func (self *Application) Initialize() {
 		return urlFile
 	}
 	self.TplFuncs["url"] = func(name string, arg ...interface{}) string {
+		if strings.Contains(name, ".") {
+			_tmp := strings.Split(name, ".")
+			if spec, ok := self.Blueprints[_tmp[0]].NamedHandlers[_tmp[1]]; ok {
+				url, err := spec.UrlSetParams(arg...)
+				if err != nil {
+					return err.Error()
+				} else {
+					return self.Blueprints[_tmp[0]].Prefix + url[1:]
+				}
+			}
+		}
 		if spec, ok := self.NamedHandlers[name]; ok {
 			url, err := spec.UrlSetParams(arg...)
 			if err != nil {
@@ -75,8 +90,8 @@ func (self *Application) Initialize() {
 		return true
 	}
 	//程序执行时间,返回毫秒
-	self.TplFuncs["eslape"] = func(handler IHandler) string {
-		return fmt.Sprintf("%f", time.Since(handler.GetStartTime()).Seconds()*1000)
+	self.TplFuncs["eslape"] = func(ctx *Context) string {
+		return fmt.Sprintf("%f", time.Since(ctx.GetStartTime()).Seconds()*1000)
 	}
 	self.TplFuncs["str_in_array"] = func(key string, strs []string) bool {
 		if len(strs) == 0 {
@@ -89,8 +104,8 @@ func (self *Application) Initialize() {
 		}
 		return false
 	}
-	self.TplFuncs["xsrf"] = func(handler IHandler) template.HTML {
-		return template.HTML(fmt.Sprintf(`<input type="hidden" value="%s" name=%q id=%q>`, handler.GetXsrf(), XSRF, XSRF))
+	self.TplFuncs["xsrf"] = func(ctx *Context) template.HTML {
+		return template.HTML(fmt.Sprintf(`<input type="hidden" value="%s" name=%q id=%q>`, ctx.GetXsrf(), XSRF, XSRF))
 	}
 	//构造模板引擎
 	tplBasePath := path.Join(self.AppPath, self.Setting.TemplateDir)
@@ -124,7 +139,10 @@ func (self *Application) Initialize() {
 }
 
 //添加处理器
-func (self *Application) AddHandler(pattern string, eName string, cName string, handler IHandler) {
+func (self *Application) Handle(pattern string, eName string, cName string, handler Handler) {
+	if strings.Contains(eName, ".") {
+		panic("名字里面带个点是几个意思!?")
+	}
 	//pattern:/home/str:action/int:id
 	if !strings.HasSuffix(pattern, "$") {
 		pattern = pattern + "$"
@@ -135,23 +153,28 @@ func (self *Application) AddHandler(pattern string, eName string, cName string, 
 	if _, exist := self.NamedHandlers[eName]; exist {
 		panic(fmt.Sprintf("已经有一个名叫 %s 的处理器！", eName))
 	}
-	self.NamedHandlers[eName] = NewURLSpec(pattern, reflect.ValueOf(handler), eName, cName)
+	self.NamedHandlers[eName] = NewURLSpec(pattern, handler, eName, cName)
+}
+
+func (self *Application) Blueprint(name string, bp *Blueprint) {
+	self.Blueprints[name] = bp
 }
 
 //捕获http请求
 func (self *Application) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	ctx := NewContext(self, req, rw)
 	defer func() {
 		if err := recover(); err != nil {
 			switch err {
 			case 404:
 				if handler, ok := self.ErrorHandlers[404]; ok {
-					handler(rw, req)
+					handler(ctx)
 				}
 			default:
 				if e, ok := err.(error); ok {
-					InternalServerErrorHandler(rw, req, 500, e, self.Setting.Debug)
+					InternalServerErrorHandler(ctx, 500, e, self.Setting.Debug)
 				} else {
-					InternalServerErrorHandler(rw, req, 500, errors.New(err.(string)), self.Setting.Debug)
+					InternalServerErrorHandler(ctx, 500, errors.New(err.(string)), self.Setting.Debug)
 				}
 
 			}
@@ -160,76 +183,109 @@ func (self *Application) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	rw.Header().Set("Server", EntropyVersion)
 	//判断请求路径是否包含已经设置的静态路径
 	if strings.HasPrefix(req.URL.Path, fmt.Sprintf("/%s", self.Setting.StaticDir)) || req.URL.Path == "/favicon.ico" {
-		self.processStaticRequest(rw, req)
+		self.processStaticRequest(ctx)
 		return
 	}
 	//查找相符的请求处理器
-	spec := self.findMatchedRequestHandler(req)
+	spec, bp := self.findMatchedRequestHandler(req)
 	if spec == nil {
 		panic(404)
 	} else {
-		self.processRequestHandler(spec, req, rw)
+		self.processRequestHandler(spec, bp, ctx)
 	}
 	return
 }
 
 //找到符合当前请求路径的处理器
-func (self *Application) findMatchedRequestHandler(req *http.Request) (matchedSpec *URLSpec) {
-	for _, spec := range self.NamedHandlers {
-		var requestUrl string
-		requestUrl = req.URL.Path
-		if spec.Regex.MatchString(requestUrl) {
-			matchedSpec = spec //最后一个match
+func (self *Application) findMatchedRequestHandler(req *http.Request) (*URLSpec, *Blueprint) {
+	for _, bp := range self.Blueprints {
+		if strings.HasPrefix(req.URL.Path, bp.Prefix) {
+			for _, spec := range bp.NamedHandlers {
+				if spec.Regex.MatchString(strings.TrimPrefix(req.URL.Path, bp.Prefix)) {
+					return spec, bp
+				}
+			}
 		}
 	}
-	return
+	for _, spec := range self.NamedHandlers {
+		requestUrl := req.URL.Path
+		if spec.Regex.MatchString(requestUrl) {
+			return spec, nil
+		}
+	}
+	return nil, nil
 }
 
 //处理请求
-func (self *Application) processRequestHandler(spec *URLSpec, req *http.Request, rw http.ResponseWriter) {
-	handler := reflect.New(reflect.Indirect(spec.Handler).Type())
-	//处理器的Initialize方法
-	methodInitialize := handler.MethodByName("Initialize")
-	argsInitialize := make([]reflect.Value, 5)
-	argsInitialize[0] = reflect.ValueOf(spec.Name)
-	argsInitialize[1] = reflect.ValueOf(spec.CName)
-	argsInitialize[2] = reflect.ValueOf(rw)
-	argsInitialize[3] = reflect.ValueOf(req)
-	argsInitialize[4] = reflect.ValueOf(self)
-	methodInitialize.Call(argsInitialize)
+func (self *Application) processRequestHandler(spec *URLSpec, bp *Blueprint, ctx *Context) {
+	//处理request参数
+	ctx.Req.ParseForm()
+	ctx.Req.ParseMultipartForm(1 << 25) // 32M 1<< 25 /1024/1024
+	ctx.generateXsrf()
+	//ctx.restoreMessages()
+	//反射该处理方法
+	handler := reflect.TypeOf(spec.Handler)
+	//根据该请求的路径,将路径中的参数提取处理
+	var params []string
+	if bp != nil {
+		params = spec.ParseUrlParams(strings.TrimPrefix(ctx.Req.URL.Path, bp.Prefix))
+	} else {
+		params = spec.ParseUrlParams(ctx.Req.URL.Path)
 
-	//处理器的Prepare方法
-	methodPrepare := handler.MethodByName("Prepare")
-	methodPrepare.Call([]reflect.Value{})
-
-	//处理表单
-	req.ParseForm()
-	req.ParseMultipartForm(1 << 25) // 32M 1<< 25 /1024/1024
-	args := spec.ParseUrlParams(req.URL.Path)
-	for name, arg := range args {
-		req.Form[name] = arg
 	}
-	//请求所对应的方法
-	method := handler.MethodByName(strings.Title(strings.ToLower(req.Method)))
-	method.Call([]reflect.Value{})
 
-	//处理器的Finish方法
-	methodFinish := handler.MethodByName("Finish")
-	methodFinish.Call([]reflect.Value{})
+	//构造路径中的参数
+	queryArgs := make([]reflect.Value, 0)
+	//如果该方法需要的参数大于或等于1(第一个参数必须为ctx),则把路径中的参数构造好,供调用方法时使用
+	if handler.NumIn() >= 1 {
+		//从1开始,把ctx过滤
+		for i := 1; i < handler.NumIn(); i++ {
+			queryArgs = append(queryArgs, reflect.ValueOf(params[i-1]))
+		}
+	}
+	//执行应用级别的before
+	for _, before := range self.BeforeFilters {
+		before(ctx)
+	}
+	//如果该处理器位于Blueprint下,还要优先执行Blueprint的before
+	if bp != nil {
+		for _, before := range bp.BeforeFilters {
+			before(ctx)
+		}
+	}
+	//调用方法时需要提供的参数
+	args := make([]reflect.Value, 0)
+	//第一个参数必须是ctx
+	args = append(args, reflect.ValueOf(ctx))
+	//后续路径中的参数
+	args = append(args, queryArgs...)
+	//调用方法,获取第一个返回值 Result
+	result := reflect.ValueOf(spec.Handler).Call(args)[0].Interface().(Result)
+	if bp != nil {
+		for _, after := range bp.AfterFilters {
+			after(ctx)
+		}
+	}
+	//执行应用级别的after
+	for _, after := range self.AfterFilters {
+		after(ctx)
+	}
+	//调用result的execute方法,进行输出
+	result.Execute(ctx.Resp)
 }
 
 //处理静态文件
-func (self *Application) processStaticRequest(rw http.ResponseWriter, req *http.Request) {
+func (self *Application) processStaticRequest(ctx *Context) {
 	//e.appPath=x://path_to_app req.Url.Path=/<e.Config.StaticDir>/css/style.css
 	//静态文件的硬盘路径
-	filePath := path.Join(self.AppPath, req.URL.Path)
+	filePath := path.Join(self.AppPath, ctx.Req.URL.Path)
 	_, err := os.Stat(filePath)
 	if err != nil {
 		//不存在则404错误
 		panic(404)
 	}
 	//直接使用ServeFile方法来处理静态文件
-	http.ServeFile(rw, req, path.Join(self.AppPath, req.URL.Path))
+	http.ServeFile(ctx.Resp, ctx.Req, path.Join(self.AppPath, ctx.Req.URL.Path))
 }
 
 //运行程序
@@ -238,6 +294,9 @@ func (self *Application) Go(host string, port int) {
 	go func() {
 		fmt.Println("Server is listening at ", addr)
 	}()
+	for prefix, bp := range self.Blueprints {
+		fmt.Println(prefix, bp.NamedHandlers)
+	}
 	log.Fatalln(http.ListenAndServe(addr, self))
 }
 
@@ -247,6 +306,9 @@ func NewApplication(filePath string) *Application {
 	application := &Application{
 		AppPath:       pwd,
 		NamedHandlers: make(map[string]*URLSpec),
+		Blueprints:    make(map[string]*Blueprint),
+		BeforeFilters: make([]Filter, 0),
+		AfterFilters:  make([]Filter, 0),
 		ErrorHandlers: ErrHandlers, //定义在error.go中
 		Setting:       NewSetting(filePath),
 		TplFuncs:      make(map[string]interface{}),

@@ -3,7 +3,8 @@ package entropy
 import (
 	"errors"
 	"fmt"
-	"reflect"
+	//"reflect"
+	//"log"
 	"regexp"
 	"strconv"
 	"strings"
@@ -16,7 +17,7 @@ type URLSpec struct {
 	//该路径生成的正则表达式
 	Regex *regexp.Regexp
 	//处理该路径请求的处理器反射值
-	Handler reflect.Value
+	Handler Handler
 	//英文名称
 	Name string
 	//中文名称
@@ -24,7 +25,7 @@ type URLSpec struct {
 }
 
 //URLSpec的构造函数
-func NewURLSpec(pattern string, handler reflect.Value, ename string, cname string) *URLSpec {
+func NewURLSpec(pattern string, handler Handler, ename string, cname string) *URLSpec {
 	spec := &URLSpec{Pattern: pattern, Handler: handler, Name: ename, CName: cname}
 	var err error
 	//将原始路径转为正则表达式
@@ -70,17 +71,17 @@ func (self *URLSpec) UrlSetParams(args ...interface{}) (url string, err error) {
 	}
 }
 
-//To transform /home/aaa/bbb (/home/:p1/:p2) into map[string][]string   :(\w+):
-func (self *URLSpec) ParseUrlParams(url string) (args map[string][]string) {
+//To transform /home/aaa/bbb (/home/:p1/:p2) into []string   :(\w+):
+func (self *URLSpec) ParseUrlParams(url string) (args []string) {
 	paramValues := self.Regex.FindStringSubmatch(url)[1:]
-	args = make(map[string][]string, 0)
-	paramNameRegexp, _ := regexp.Compile(`(:\w+)`)
+	args = make([]string, 0)
+	//paramNameRegexp, _ := regexp.Compile(`(:\w+)`)
 	parttens := strings.Split(self.Pattern, "/")
 	var index int = 0
 	for _, p := range parttens {
 		if strings.HasPrefix(p, ":") {
-			pName := paramNameRegexp.FindStringSubmatch(p)[1]
-			args[strings.TrimPrefix(pName, ":")] = []string{paramValues[index]}
+			//pName := paramNameRegexp.FindStringSubmatch(p)[1]
+			args = append(args, paramValues[index])
 			index++
 		}
 	}

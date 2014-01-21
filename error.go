@@ -2,11 +2,10 @@ package entropy
 
 import (
 	"html/template"
-	"net/http"
 )
 
 var (
-	ErrHandlers = make(map[int]http.HandlerFunc)
+	ErrHandlers = make(map[int]Filter)
 )
 
 func init() {
@@ -15,8 +14,8 @@ func init() {
 }
 
 //404默认处理函数
-func NotFoundErrorHandler(rw http.ResponseWriter, req *http.Request) {
-	rw.WriteHeader(404)
+func NotFoundErrorHandler(ctx *Context) {
+	ctx.Resp.WriteHeader(404)
 	t, err := template.New("NotFound").Parse(errorTpl)
 	if err != nil {
 		panic(err)
@@ -26,11 +25,11 @@ func NotFoundErrorHandler(rw http.ResponseWriter, req *http.Request) {
 	d["Title"] = "页面没有找到 = =#"
 	d["Messages"] = []string{"该页面可能去打酱油了，请稍候再试！", "如果这已经是第二次出现，请检查输入的链接是否正确……", "如果均已确认，请参照第一条……"}
 	d["Version"] = EntropyVersion
-	t.Execute(rw, d)
+	t.Execute(ctx.Resp, d)
 }
 
 //500错误默认处理函数
-func InternalServerErrorHandler(rw http.ResponseWriter, req *http.Request, code int, err error, debug bool) {
+func InternalServerErrorHandler(ctx *Context, code int, err error, debug bool) {
 	t, _ := template.New("Error").Parse(errorTpl)
 	d := make(map[string]interface{})
 	d["Code"] = code
@@ -41,7 +40,7 @@ func InternalServerErrorHandler(rw http.ResponseWriter, req *http.Request, code 
 	} else {
 		d["Messages"] = []string{"很抱歉，应用程序发生了错误！"}
 	}
-	t.Execute(rw, d)
+	t.Execute(ctx.Resp, d)
 }
 
 var errorTpl = `
