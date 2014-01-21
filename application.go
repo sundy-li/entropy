@@ -174,6 +174,10 @@ func (self *Application) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 				if handler, ok := self.ErrorHandlers[404]; ok {
 					handler(ctx)
 				}
+			case 401:
+				if handler, ok := self.ErrorHandlers[401]; ok {
+					handler(ctx)
+				}
 			default:
 				if e, ok := err.(error); ok {
 					InternalServerErrorHandler(ctx, 500, e, self.Setting.Debug)
