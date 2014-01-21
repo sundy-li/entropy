@@ -225,8 +225,10 @@ func (self *Application) processRequestHandler(spec *URLSpec, bp *Blueprint, ctx
 	//处理request参数
 	ctx.Req.ParseForm()
 	ctx.Req.ParseMultipartForm(1 << 25) // 32M 1<< 25 /1024/1024
-	ctx.generateXsrf()
-	//ctx.restoreMessages()
+	if !ctx.IsAjax() {
+		ctx.generateXsrf()
+	}
+	ctx.restoreMessages()
 	//反射该处理方法
 	handler := reflect.TypeOf(spec.Handler)
 	//根据该请求的路径,将路径中的参数提取处理
@@ -274,6 +276,7 @@ func (self *Application) processRequestHandler(spec *URLSpec, bp *Blueprint, ctx
 	for _, after := range self.AfterFilters {
 		after(ctx)
 	}
+	ctx.flushMessage()
 	//调用result的execute方法,进行输出
 	result.Execute(ctx.Resp)
 }
@@ -298,9 +301,6 @@ func (self *Application) Go(host string, port int) {
 	go func() {
 		fmt.Println("Server is listening at ", addr)
 	}()
-	for prefix, bp := range self.Blueprints {
-		fmt.Println(prefix, bp.NamedHandlers)
-	}
 	log.Fatalln(http.ListenAndServe(addr, self))
 }
 

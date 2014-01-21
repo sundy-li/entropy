@@ -2,7 +2,7 @@ package entropy
 
 import (
 	"encoding/base64"
-	//"encoding/json"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -43,6 +43,14 @@ func (self *Context) GetStartTime() time.Time {
 
 func (self *Context) GetXsrf() string {
 	return self.Xsrf
+}
+
+func (self *Context) GetArg(name, defaultValue string) string {
+	if param, ok := self.Req.Form[name]; ok {
+		return param[0]
+	} else {
+		return defaultValue
+	}
 }
 
 //reverse
@@ -106,24 +114,21 @@ func (self *Context) IsPost() bool {
 	}
 }
 
-// func (self *Context) restoreMessages() {
-// 	_tmp, err := self.GetSecureCookie(self.App.Setting.FlashCookieName)
-// 	if err == nil {
-// 		if err := json.Unmarshal([]byte(_tmp), &self.Messages); err != nil {
-// 			log.Println(err)
-// 		}
-// 	}
-// }
+func (self *Context) restoreMessages() {
+	_tmp, err := self.GetSecureCookie(self.App.Setting.FlashCookieName)
+	if err == nil {
+		if err := json.Unmarshal([]byte(_tmp), &self.Messages); err != nil {
+			log.Println(err)
+		}
+	}
+}
 
-// func (self *Context) flushMessage() {
-// 	_tmp, err := json.Marshal(self.Messages)
-// 	if err == nil {
-// 		self.SetSecureCookie(self.App.Setting.FlashCookieName, string(_tmp), 2)
-// 	}
-// 	if !self.IsAjax() {
-// 		self.SetSecureCookie(XSRF, self.Xsrf, 600)
-// 	}
-// }
+func (self *Context) flushMessage() {
+	_tmp, err := json.Marshal(self.Messages)
+	if err == nil {
+		self.SetSecureCookie(self.App.Setting.FlashCookieName, string(_tmp), 2)
+	}
+}
 
 //设置加密cookie,使用aes加密
 func (self *Context) SetSecureCookie(key, value string, age int) {
