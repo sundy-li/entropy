@@ -156,6 +156,10 @@ func (self *Application) Handle(pattern string, eName string, cName string, hand
 	self.NamedHandlers[eName] = NewURLSpec(pattern, handler, eName, cName)
 }
 
+func (self *Application) Before(filter Filter) {
+	self.BeforeFilters = append(self.BeforeFilters, filter)
+}
+
 func (self *Application) Blueprint(name string, bp *Blueprint) {
 	self.Blueprints[name] = bp
 }
