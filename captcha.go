@@ -20,6 +20,16 @@ type Captcha struct {
 	Text  string
 }
 
+/*
+生成验证码
+bg:背景色
+fg:前景色
+length:字符长度
+width:宽度
+height:高度
+size:字体大小
+fontPath:字体文件路径
+*/
 func GenerateCaptcha(bg, fg *image.Uniform, length int, width int, height int, size float64, fontPath string) *Captcha {
 	fontBytes, err := ioutil.ReadFile(fontPath)
 	if err != nil {
