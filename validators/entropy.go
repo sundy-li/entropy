@@ -37,7 +37,6 @@ type Email struct {
 }
 
 func (v Email) Verify(value string) (bool, string) {
-	//`^(\w)+(\.\w+)*@(\w)+((\.\w+)+)$`
 	tmp := Regexp{Expr: `^.+@[^.].*\.[a-z]{2,10}$`, Message: "无效的电子邮件地址"}
 
 	return tmp.Verify(value)
@@ -48,6 +47,15 @@ type URL struct {
 
 func (v URL) Verify(value string) (bool, string) {
 	tmp := Regexp{Expr: `^(http|https)?://([^/:]+|([0-9]{1,3}\.){3}[0-9]{1,3})(:[0-9]+)?(\/.*)?$`, Message: "无效的URL"}
+
+	return tmp.Verify(value)
+}
+
+type Int struct {
+}
+
+func (v Int) Verify(value string) (bool, string) {
+	tmp := Regexp{Expr: `^[0-9]*$`, Message: "无效的整数"}
 
 	return tmp.Verify(value)
 }
