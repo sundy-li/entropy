@@ -13,6 +13,7 @@ import (
 	"path"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -250,7 +251,14 @@ func (self *Application) processRequestHandler(spec *URLSpec, bp *Blueprint, ctx
 	if handler.NumIn() >= 1 {
 		//从1开始,把ctx过滤
 		for i := 1; i < handler.NumIn(); i++ {
-			queryArgs = append(queryArgs, reflect.ValueOf(params[i-1]))
+			var param interface{}
+			switch handler.In(i).Kind() {
+			case reflect.Int64:
+				param, _ = strconv.ParseInt(params[i-1], 10, 64)
+			default:
+				param = params[i-1]
+			}
+			queryArgs = append(queryArgs, reflect.ValueOf(param))
 		}
 	}
 	//执行应用级别的before

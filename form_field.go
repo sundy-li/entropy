@@ -136,7 +136,7 @@ func (field *TextArea) Render(class string, attrs []string) template.HTML {
 		}
 	}
 
-	return template.HTML(fmt.Sprintf(`<textarea id="%q" class="%s" name="%q" %s>%s</textarea>`, field.name, class, field.name, attrsStr, field.value))
+	return template.HTML(fmt.Sprintf(`<textarea id="%s" class="%s" name="%s" %s>%s</textarea>`, field.name, class, field.name, attrsStr, field.value))
 }
 
 func NewTextArea(name string, label string, value string, validators ...IValidator) *TextArea {
