@@ -61,8 +61,10 @@ func (self *URLSpec) UrlSetParams(args ...interface{}) (url string, err error) {
 				url = strings.Replace(url, matched[index], s, -1)
 			} else if i, ok := arg.(int64); ok {
 				url = strings.Replace(url, matched[index], strconv.FormatInt(i, 10), -1)
+			} else if i, ok := arg.(int); ok {
+				url = strings.Replace(url, matched[index], strconv.FormatInt(int64(i), 10), -1)
 			} else {
-				err = errors.New(fmt.Sprintf("参数%v须为string或int64类型", arg))
+				err = errors.New(fmt.Sprintf("参数%v须为string或int(int64)类型", arg))
 				return
 			}
 

@@ -242,7 +242,6 @@ func (self *Application) processRequestHandler(spec *URLSpec, bp *Blueprint, ctx
 		params = spec.ParseUrlParams(strings.TrimPrefix(ctx.Req.URL.Path, bp.Prefix))
 	} else {
 		params = spec.ParseUrlParams(ctx.Req.URL.Path)
-
 	}
 
 	//构造路径中的参数
@@ -253,8 +252,12 @@ func (self *Application) processRequestHandler(spec *URLSpec, bp *Blueprint, ctx
 		for i := 1; i < handler.NumIn(); i++ {
 			var param interface{}
 			switch handler.In(i).Kind() {
+			case reflect.Int:
+				param, _ = strconv.ParseInt(params[i-1], 10, 64)
 			case reflect.Int64:
 				param, _ = strconv.ParseInt(params[i-1], 10, 64)
+			case reflect.Float64:
+				param, _ = strconv.ParseFloat(params[i-1], 64)
 			default:
 				param = params[i-1]
 			}
