@@ -1,6 +1,7 @@
 package entropy
 
 import (
+	"fmt"
 	"html/template"
 	"net/http"
 	"reflect"
@@ -33,8 +34,8 @@ interface{} 返回存有表单值的实例对象
 */
 func ParseForm(formParse interface{}, r *http.Request) (interface{}, *Form) {
 	form := NewForm(formParse)
-	for name, filed := range form.fields {
-		filed.SetValue(strings.TrimSpace(r.FormValue(name)))
+	for name, field := range form.fields {
+		field.SetValue(strings.TrimSpace(r.FormValue(name)))
 	}
 	_form := reflect.ValueOf(formParse).Elem()
 	for i := 0; i < _form.NumField(); i++ {
@@ -65,8 +66,12 @@ func (form *Form) Label(name string, class string, attrs ...string) template.HTM
 }
 
 func (form *Form) Render(name string, class string, attrs ...string) template.HTML {
-	field := form.fields[name]
-	return field.Render(class, attrs)
+	field, ok := form.fields[name]
+	if !ok {
+		return template.HTML(fmt.Sprintf("没有名为%s的表单项,请检查表单定义", name))
+	} else {
+		return field.Render(class, attrs)
+	}
 }
 
 func (form *Form) Value(name string) string {

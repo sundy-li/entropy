@@ -11,14 +11,16 @@ import (
 )
 
 type Context struct {
-	App       *Application
-	Req       *http.Request
-	Resp      Response
-	Messages  map[string][]string
-	Data      map[string]interface{}
-	startTime time.Time
-	Xsrf      string
-	Form      *Form
+	App          *Application
+	Req          *http.Request
+	Resp         Response
+	HandlerName  string
+	HandlerCName string
+	Messages     map[string][]string
+	Data         map[string]interface{}
+	startTime    time.Time
+	Xsrf         string
+	Form         *Form
 }
 
 func NewContext(app *Application, req *http.Request, rw http.ResponseWriter) *Context {

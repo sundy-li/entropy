@@ -227,6 +227,8 @@ func (self *Application) findMatchedRequestHandler(req *http.Request) (*URLSpec,
 
 //处理请求
 func (self *Application) processRequestHandler(spec *URLSpec, bp *Blueprint, ctx *Context) {
+	ctx.HandlerName = spec.Name
+	ctx.HandlerCName = spec.CName
 	//处理request参数
 	ctx.Req.ParseForm()
 	ctx.Req.ParseMultipartForm(1 << 25) // 32M 1<< 25 /1024/1024
@@ -253,7 +255,8 @@ func (self *Application) processRequestHandler(spec *URLSpec, bp *Blueprint, ctx
 			var param interface{}
 			switch handler.In(i).Kind() {
 			case reflect.Int:
-				param, _ = strconv.ParseInt(params[i-1], 10, 64)
+				_tmp, _ := strconv.ParseInt(params[i-1], 10, 64)
+				param = int(_tmp)
 			case reflect.Int64:
 				param, _ = strconv.ParseInt(params[i-1], 10, 64)
 			case reflect.Float64:

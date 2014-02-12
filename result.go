@@ -28,7 +28,7 @@ type HtmlResult struct {
 func (self *HtmlResult) Execute(writer io.Writer) {
 	tpl := self.Context.App.TplEngine.Lookup(self.Tpl)
 	if tpl == nil {
-		panic("没有找到指定的模板！")
+		panic("没有找到指定的模板！" + self.Tpl)
 	}
 	self.Context.Resp.SetContentType("html")
 	tpl.Execute(writer, self.Context)
