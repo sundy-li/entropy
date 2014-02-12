@@ -19,19 +19,21 @@ type Context struct {
 	Messages     map[string][]string
 	Data         map[string]interface{}
 	startTime    time.Time
+	RequireXsrf  bool
 	Xsrf         string
 	Form         *Form
 }
 
 func NewContext(app *Application, req *http.Request, rw http.ResponseWriter) *Context {
 	return &Context{
-		App:       app,
-		Req:       req,
-		Resp:      Response{rw},
-		Messages:  make(map[string][]string, 0),
-		Data:      make(map[string]interface{}, 0),
-		startTime: time.Now(),
-		Xsrf:      "",
+		App:         app,
+		Req:         req,
+		Resp:        Response{rw},
+		Messages:    make(map[string][]string, 0),
+		Data:        make(map[string]interface{}, 0),
+		startTime:   time.Now(),
+		RequireXsrf: true,
+		Xsrf:        "",
 	}
 }
 
@@ -80,8 +82,10 @@ func (self *Context) Reverse(name string, arg ...interface{}) string {
 }
 
 func (self *Context) generateXsrf() {
-	self.Xsrf = base64.StdEncoding.EncodeToString([]byte(time.Now().Format(time.RFC3339)))[22:30] + randString(8)
-	self.SetSecureCookie(XSRF, self.Xsrf, 3600)
+	if self.RequireXsrf {
+		self.Xsrf = base64.StdEncoding.EncodeToString([]byte(time.Now().Format(time.RFC3339)))[22:30] + randString(8)
+		self.SetSecureCookie(XSRF, self.Xsrf, 3600)
+	}
 }
 
 func (self *Context) IsAjax() bool {

@@ -232,9 +232,7 @@ func (self *Application) processRequestHandler(spec *URLSpec, bp *Blueprint, ctx
 	//处理request参数
 	ctx.Req.ParseForm()
 	ctx.Req.ParseMultipartForm(1 << 25) // 32M 1<< 25 /1024/1024
-	if !ctx.IsAjax() {
-		ctx.generateXsrf()
-	}
+
 	ctx.restoreMessages()
 	//反射该处理方法
 	handler := reflect.TypeOf(spec.Handler)
@@ -295,6 +293,7 @@ func (self *Application) processRequestHandler(spec *URLSpec, bp *Blueprint, ctx
 		after(ctx)
 	}
 	ctx.flushMessage()
+	ctx.generateXsrf()
 	//调用result的execute方法,进行输出
 	result.Execute(ctx.Resp)
 }
