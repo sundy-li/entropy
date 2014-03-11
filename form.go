@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"reflect"
 	"strings"
 )
 
@@ -13,39 +12,24 @@ type Form struct {
 	errors map[string][]string
 }
 
-func NewForm(formParse interface{}) *Form {
-	form := Form{}
-	form.fields = make(map[string]IField)
-	form.errors = make(map[string][]string, 0)
-	_form := reflect.ValueOf(formParse).Elem()
-	for i := 0; i < _form.NumField(); i++ {
-		field := _form.Field(i)
-		//把非IField排除
-		if f, ok := field.Interface().(IField); ok {
-			form.fields[f.GetName()] = f
-		}
+func NewForm(fileds ...IField) *Form {
+	form := &Form{
+		fields: make(map[string]IField),
+		errors: make(map[string][]string, 0),
 	}
-	return &form
+	for _, filed := range fileds {
+		form.fields[filed.GetName()] = filed
+	}
+	return form
 }
 
 /*从请求中分析表单
-interface{} 返回存有表单值的实例对象
-*Form 返回带方法的Form对象
-*/
-func ParseForm(formParse interface{}, r *http.Request) (interface{}, *Form) {
-	form := NewForm(formParse)
-	for name, field := range form.fields {
+ */
+func ParseForm(rawForm *Form, r *http.Request) *Form {
+	for name, field := range rawForm.fields {
 		field.SetValue(strings.TrimSpace(r.FormValue(name)))
 	}
-	_form := reflect.ValueOf(formParse).Elem()
-	for i := 0; i < _form.NumField(); i++ {
-		field := _form.Field(i)
-		//把非IField排除
-		if f, ok := field.Interface().(IField); ok {
-			f = form.fields[f.GetName()]
-		}
-	}
-	return _form.Interface(), form
+	return rawForm
 }
 
 func (form *Form) Validate(r *http.Request) bool {
