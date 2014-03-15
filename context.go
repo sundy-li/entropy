@@ -49,7 +49,15 @@ func (self *Context) GetXsrf() string {
 	return self.Xsrf
 }
 
-func (self *Context) GetArg(name, defaultValue string) string {
+func (self *Context) HasQueryArgs() bool {
+	if len(self.Req.Form) == 0 {
+		return true
+	} else {
+		return false
+	}
+}
+
+func (self *Context) GetQueryArg(name, defaultValue string) string {
 	if param, ok := self.Req.Form[name]; ok {
 		return param[0]
 	} else {
