@@ -32,7 +32,7 @@ func ParseForm(rawForm *Form, r *http.Request) *Form {
 	return rawForm
 }
 
-func (form *Form) Validate(r *http.Request) bool {
+func (form *Form) Validate() bool {
 	result := true
 	for _, field := range form.fields {
 		ret, err := field.Validate()
