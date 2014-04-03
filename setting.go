@@ -17,6 +17,7 @@ type Setting struct {
 	SessionCookieName string
 	Xsrf              bool
 	CurrentUser       string
+	Capt              string
 }
 
 var (
@@ -36,10 +37,11 @@ func NewSetting(fileName string) *Setting {
 			Debug:             true,
 			TemplateDir:       "template",
 			StaticDir:         "static",
-			FlashCookieName:   "msgs",
-			SessionCookieName: "session",
+			FlashCookieName:   "entropy_msg",
+			SessionCookieName: "entropy_session",
 			Xsrf:              true,
 			CurrentUser:       "_current_user_",
+			Capt:              "_capt_",
 		}
 		log.Println("Loaded default setting")
 		if err == nil {
