@@ -267,12 +267,18 @@ func (self *Application) processRequestHandler(spec *URLSpec, bp *Blueprint, ctx
 	}
 	//执行应用级别的before
 	for _, before := range self.BeforeFilters {
-		before(ctx)
+		b, r := before(ctx)
+		if !b {
+			r.Execute(ctx.Resp)
+		}
 	}
 	//如果该处理器位于Blueprint下,还要优先执行Blueprint的before
 	if bp != nil {
 		for _, before := range bp.BeforeFilters {
-			before(ctx)
+			b, r := before(ctx)
+			if !b {
+				r.Execute(ctx.Resp)
+			}
 		}
 	}
 	//调用方法时需要提供的参数
@@ -285,12 +291,18 @@ func (self *Application) processRequestHandler(spec *URLSpec, bp *Blueprint, ctx
 	result := reflect.ValueOf(spec.Handler).Call(args)[0].Interface().(Result)
 	if bp != nil {
 		for _, after := range bp.AfterFilters {
-			after(ctx)
+			b, r := after(ctx)
+			if !b {
+				r.Execute(ctx.Resp)
+			}
 		}
 	}
 	//执行应用级别的after
 	for _, after := range self.AfterFilters {
-		after(ctx)
+		b, r := after(ctx)
+		if !b {
+			r.Execute(ctx.Resp)
+		}
 	}
 	ctx.flushMessage()
 	ctx.generateXsrf()
