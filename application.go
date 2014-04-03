@@ -247,7 +247,7 @@ func (self *Application) processRequestHandler(spec *URLSpec, bp *Blueprint, ctx
 	//构造路径中的参数
 	queryArgs := make([]reflect.Value, 0)
 	//如果该方法需要的参数大于或等于1(第一个参数必须为ctx),则把路径中的参数构造好,供调用方法时使用
-	if handler.NumIn() >= 1 {
+	if handler.NumIn() > 1 {
 		//从1开始,把ctx过滤
 		for i := 1; i < handler.NumIn(); i++ {
 			var param interface{}
