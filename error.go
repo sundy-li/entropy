@@ -14,7 +14,9 @@ func init() {
 }
 
 //404默认处理函数
-func NotFoundErrorHandler(ctx *Context) {
+func NotFoundErrorHandler(ctx *Context) (b bool, r Result) {
+	b = true
+	r = nil
 	ctx.Resp.WriteHeader(404)
 	t, err := template.New("NotFound").Parse(errorTpl)
 	if err != nil {
@@ -26,6 +28,7 @@ func NotFoundErrorHandler(ctx *Context) {
 	d["Messages"] = []string{"该页面可能去打酱油了，请稍候再试！", "如果这已经是第二次出现，请检查输入的链接是否正确……", "如果均已确认，请参照第一条……"}
 	d["Version"] = EntropyVersion
 	t.Execute(ctx.Resp, d)
+	return
 }
 
 //500错误默认处理函数
