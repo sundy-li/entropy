@@ -33,15 +33,14 @@ func ParseForm(rawForm *Form, r *http.Request) *Form {
 }
 
 func (form *Form) Validate() bool {
-	result := true
 	for _, field := range form.fields {
 		ret, err := field.Validate()
 		if !ret {
 			form.errors[field.GetName()] = append(form.errors[field.GetName()], err)
-			result = false
+			return false
 		}
 	}
-	return result
+	return true
 }
 
 func (form *Form) Label(name string, class string, attrs ...string) template.HTML {
