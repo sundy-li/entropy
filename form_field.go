@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"html/template"
 
-	v "github.com/frank418/entropy/validators"
+	v "github.com/codebear4/entropy/validators"
 )
 
 type IField interface {

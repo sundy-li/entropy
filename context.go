@@ -133,8 +133,8 @@ func (self *Context) IsPost() bool {
 func (self *Context) restoreMessages() {
 	_tmp, err := self.GetSecureCookie(self.App.Setting.FlashCookieName)
 	defer func() {
-		self.SetSecureCookie(self.App.Setting.FlashCookieName,"",-1)
-	}
+		self.SetSecureCookie(self.App.Setting.FlashCookieName, "", -1)
+	}()
 	if err == nil {
 		if err := json.Unmarshal([]byte(_tmp), &self.Messages); err != nil {
 			log.Println(err)
@@ -196,6 +196,6 @@ func (self *Context) GetCookie(key string) (string, error) {
 	}
 }
 
-func (self *Context) RenderTemplate(tplName string) {
+func (self *Context) RenderTemplate(tplName string) Result {
 	return NewHtmlResult(self, tplName)
 }
