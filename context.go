@@ -10,6 +10,7 @@ import (
 	"time"
 )
 
+//会话结构体
 type Context struct {
 	App          *Application
 	Req          *http.Request
@@ -24,6 +25,7 @@ type Context struct {
 	Form         *Form
 }
 
+//会话构造函数
 func NewContext(app *Application, req *http.Request, rw http.ResponseWriter) *Context {
 	return &Context{
 		App:         app,
@@ -92,7 +94,7 @@ func (self *Context) Reverse(name string, arg ...interface{}) string {
 func (self *Context) generateXsrf() {
 	if self.RequireXsrf {
 		self.Xsrf = base64.StdEncoding.EncodeToString([]byte(time.Now().Format(time.RFC3339)))[22:30] + randString(8)
-		self.SetSecureCookie(XSRF, self.Xsrf, 3600)
+		self.SetSecureCookie(self.App.Setting.XsrfCookie, self.Xsrf, 600)
 	}
 }
 
@@ -130,6 +132,9 @@ func (self *Context) IsPost() bool {
 
 func (self *Context) restoreMessages() {
 	_tmp, err := self.GetSecureCookie(self.App.Setting.FlashCookieName)
+	defer func() {
+		self.SetSecureCookie(self.App.Setting.FlashCookieName,"",-1)
+	}
 	if err == nil {
 		if err := json.Unmarshal([]byte(_tmp), &self.Messages); err != nil {
 			log.Println(err)
@@ -189,4 +194,8 @@ func (self *Context) GetCookie(key string) (string, error) {
 		value := cookie.Value
 		return value, nil
 	}
+}
+
+func (self *Context) RenderTemplate(tplName string) {
+	return NewHtmlResult(self, tplName)
 }
