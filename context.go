@@ -17,12 +17,18 @@ type Context struct {
 	Resp         Response
 	HandlerName  string
 	HandlerCName string
-	Messages     map[string][]string
+	Flash        *Flash
+	Session      *Session
 	Data         map[string]interface{}
 	startTime    time.Time
 	RequireXsrf  bool
 	Xsrf         string
 	Form         *Form
+}
+
+type Flash struct {
+	Success string
+	Error   string
 }
 
 //会话构造函数
@@ -31,12 +37,24 @@ func NewContext(app *Application, req *http.Request, rw http.ResponseWriter) *Co
 		App:         app,
 		Req:         req,
 		Resp:        Response{rw},
-		Messages:    make(map[string][]string, 0),
+		Flash:       &Flash{},
 		Data:        make(map[string]interface{}, 0),
 		startTime:   time.Now(),
 		RequireXsrf: true,
 		Xsrf:        "",
 	}
+}
+
+func (self *Context) prepareSession() {
+	self.Session = &Session{
+		SessionId: fmt.Sprintf("%d", time.Now().Nanosecond()),
+		store:     NewCookieSession(self.App.Setting.SessionCookieName, self),
+	}
+	self.Session.Restore()
+}
+
+func (self *Context) flushSession() {
+	self.Session.Flush()
 }
 
 func (self *Context) Assign(name string, value interface{}) {
@@ -110,8 +128,12 @@ func (self *Context) IsAjax() bool {
 	}
 }
 
-func (self *Context) Flash(key, msg string) {
-	self.Messages[key] = append(self.Messages[key], msg)
+func (self *Context) FlashError(msg string) {
+	self.Flash.Error = msg
+}
+
+func (self *Context) FlashSuccess(msg string) {
+	self.Flash.Success = msg
 }
 
 func (self *Context) IsGet() bool {
@@ -131,19 +153,19 @@ func (self *Context) IsPost() bool {
 }
 
 func (self *Context) restoreMessages() {
-	_tmp, err := self.GetSecureCookie(self.App.Setting.FlashCookieName)
+	_tmp, err := self.SecureCookie(self.App.Setting.FlashCookieName)
 	defer func() {
 		self.SetSecureCookie(self.App.Setting.FlashCookieName, "", -1)
 	}()
 	if err == nil {
-		if err := json.Unmarshal([]byte(_tmp), &self.Messages); err != nil {
-			log.Println(err)
+		if err := json.Unmarshal([]byte(_tmp), &self.Flash); err != nil {
+			log.Println("restoreMessages", err)
 		}
 	}
 }
 
 func (self *Context) flushMessage() {
-	_tmp, err := json.Marshal(self.Messages)
+	_tmp, err := json.Marshal(self.Flash)
 	if err == nil {
 		self.SetSecureCookie(self.App.Setting.FlashCookieName, string(_tmp), 2)
 	}
@@ -151,28 +173,20 @@ func (self *Context) flushMessage() {
 
 //设置加密cookie,使用aes加密
 func (self *Context) SetSecureCookie(key, value string, age int) {
-	AESValue, e := AesEncrypt([]byte(value), []byte(self.App.Setting.Secret))
-	if e != nil {
-		panic(e.Error())
-	}
-	self.SetCookie(key, base64.StdEncoding.EncodeToString(AESValue), age)
+	self.SetCookie(key, string(Base64Encode([]byte(value))), age)
 }
 
 //获取加密cookie
-func (self *Context) GetSecureCookie(key string) (string, error) {
-	cookie_value, err := self.GetCookie(key)
+func (self *Context) SecureCookie(key string) (string, error) {
+	cookie_value, err := self.Cookie(key)
 	if err != nil {
+		log.Println("get cookie", err)
 		return "", err
 	} else {
-		byte_value, err := base64.StdEncoding.DecodeString(cookie_value)
-		if err != nil {
-			log.Println("getsecurecookie", err.Error())
-		}
-		value, err := AesDecrypt(byte_value, []byte(self.App.Setting.Secret))
-		if err != nil {
-			log.Println("getsecurecookie", err.Error())
-		}
-		return string(value), nil
+		log.Println("before base64", cookie_value)
+		value, err := Base64Decode([]byte(cookie_value))
+		log.Println("after base64", value)
+		return string(value), err
 	}
 }
 
@@ -186,7 +200,7 @@ func (self *Context) SetCookie(key, value string, age int) {
 }
 
 //获取cookie
-func (self *Context) GetCookie(key string) (string, error) {
+func (self *Context) Cookie(key string) (string, error) {
 	cookie, err := self.Req.Cookie(key)
 	if err != nil {
 		return "", err
@@ -196,6 +210,6 @@ func (self *Context) GetCookie(key string) (string, error) {
 	}
 }
 
-func (self *Context) RenderTemplate(tplName string) Result {
+func (self *Context) Html(tplName string) Result {
 	return NewHtmlResult(self, tplName)
 }

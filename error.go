@@ -53,7 +53,7 @@ var errorTpl = `
     <meta charset="utf-8">
     <!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"><![endif]-->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Entropy | Error {{.Title}} - {{.Code}}</title>
+    <title>Entropy | Error {{.Code}}</title>
     <style>
     body {
         font-family: "Monaco", sans-serif, "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -120,7 +120,7 @@ var errorTpl = `
                 <div class="page-error">
 
                     <div class="error-text">
-                        <h2>{{.Code}}</h2>
+                        <h2>{{.Title}}</h2>
                             {{range .Messages}}
                                 <p>{{.}}</p>
                             {{end}}

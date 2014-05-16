@@ -9,7 +9,7 @@ import (
 //收集错误信息
 func MakeStack() []string {
 	var stack = make([]string, 0)
-	ps := make([]uintptr, 30)
+	ps := make([]uintptr, 300)
 	count := runtime.Callers(0, ps)
 	for i := 0; i < count; i++ {
 		file, line := runtime.FuncForPC(ps[i]).FileLine(ps[i])

@@ -1,11 +1,14 @@
 package entropy
 
 import (
+	"crypto/sha1"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"path"
+	"time"
 )
 
 type Setting struct {
@@ -33,11 +36,12 @@ func NewSetting(fileName string) *Setting {
 		cPath, _ := os.Getwd()
 		filePath := path.Join(cPath, fileName)
 		file, err := ioutil.ReadFile(filePath)
-		//secret := fmt.Sprintf("%x", sha1.New().Sum([]byte(time.Now().Format(time.RFC3339))))
+		secret := fmt.Sprintf("%x", sha1.New().Sum([]byte(time.Now().Format(time.RFC3339))))[:32]
 		globalSetting := &Setting{
 			Debug:             true,
 			TemplateDir:       "template",
 			StaticDir:         "static",
+			Secret:            secret,
 			FlashCookieName:   "entropy_msg",
 			SessionCookieName: "entropy_session",
 			Xsrf:              true,
